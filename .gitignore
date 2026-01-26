@@ -1,0 +1,26 @@
+# IDE
+.vscode/
+.idea/
+
+# Backend
+__pycache__/
+*.py[cod]
+*$py.class
+backend/venv/
+backend/.env
+backend/.pytest_cache/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# System
+.DS_Store
+Thumbs.db
+
+# Project
+.env
+key
+*.log
