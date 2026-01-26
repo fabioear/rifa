@@ -56,6 +56,10 @@ REM 7. Subir Docker
 echo [DOCKER] Reiniciando servicos...
 ssh -o StrictHostKeyChecking=no -i "%KEY%" %USER%@%HOST% "cd /var/www/rifa && docker compose down && docker compose up -d --build"
 
+REM 8. Limpeza e Manutencao
+echo [LIMPEZA] Removendo arquivos e imagens nao utilizados no servidor...
+ssh -o StrictHostKeyChecking=no -i "%KEY%" %USER%@%HOST% "docker system prune -af"
+
 echo.
 echo ========================================
 echo [SUCESSO] Deploy concluido!
