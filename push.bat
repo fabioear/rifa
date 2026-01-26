@@ -41,6 +41,7 @@ ssh -o StrictHostKeyChecking=no -i "%KEY%" %USER%@%HOST% "mkdir -p /var/www/rifa
 
 REM 4. Enviar Codigo (Git Push)
 echo [DEPLOY] Enviando codigo para o servidor...
+set "GIT_SSH_COMMAND=ssh -i "%KEY%" -o StrictHostKeyChecking=no"
 git push server main
 
 REM 5. Checkout no Servidor (Deploy)
