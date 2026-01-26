@@ -42,7 +42,8 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: http://imperiodasrifas.app.br/api/v1
+        # Usando caminho relativo para aproveitar o proxy reverso e evitar problemas de CORS/Mixed Content
+        VITE_API_URL: /api/v1
     container_name: rifa-frontend
     restart: always
     depends_on:
