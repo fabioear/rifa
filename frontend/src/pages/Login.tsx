@@ -21,22 +21,27 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Backend expects OAuth2PasswordRequestForm (username, password)
+      // ✅ Correção: FastAPI OAuth2 exige dados como Form Data (x-www-form-urlencoded)
+      // NÃO enviar como JSON (objeto JS simples)
       const formData = new URLSearchParams();
-      formData.append('username', email);
+      formData.append('username', email); // O campo DEVE ser 'username', mesmo que seja email
       formData.append('password', password);
 
+      // ✅ Header explícito é boa prática, embora o Axios detecte URLSearchParams
       const response = await api.post('/login/access-token', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
 
+      console.log('Login realizado com sucesso:', response.data);
       login(response.data.access_token);
       navigate(from, { replace: true });
     } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.detail || 'Falha ao realizar login. Verifique suas credenciais.');
+      console.error('Erro no login:', err);
+      // Se for erro de rede ou proxy (Vite), o response pode vir vazio
+      const errorMessage = err.response?.data?.detail || 'Erro ao conectar ao servidor (Verifique se o Backend está rodando).';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
