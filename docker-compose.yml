@@ -41,9 +41,8 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        # Usando caminho relativo para aproveitar o proxy reverso e evitar problemas de CORS/Mixed Content
-        VITE_API_URL: /api/v1
+      # args:
+        # VITE_API_URL: /api/v1
     container_name: rifa-frontend
     restart: always
     depends_on:

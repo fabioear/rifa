@@ -7,7 +7,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8010',
+        // Aponta para o Backend de Produção na VPS
+        target: 'http://imperiodasrifas.app.br:8010',
         changeOrigin: true,
         secure: false,
       },

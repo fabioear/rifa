@@ -7,10 +7,7 @@ import Rifas from './pages/Rifas';
 import Sorteios from './pages/Sorteios';
 import UsersPage from './pages/Users';
 
-console.log('App.tsx module loaded');
-
 function App() {
-  console.log('App component rendering');
   return (
     <BrowserRouter>
       <Routes>

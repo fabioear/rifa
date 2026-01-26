@@ -4,8 +4,6 @@ import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 
-console.log('main.tsx: Mounting React App...');
-
 createRoot(document.getElementById('root')!).render(
   <ThemeProvider>
     <AuthProvider>
