@@ -56,7 +56,12 @@ REM 7. Subir Docker
 echo [DOCKER] Reiniciando servicos (RESETANDO BANCO DE DADOS)...
 ssh -o StrictHostKeyChecking=no -i "%KEY%" %USER%@%HOST% "cd /var/www/rifa && docker compose down -v && docker compose up -d --build"
 
-REM 8. Limpeza e Manutencao
+REM 8. Configurar Proxy Reverso no Host (Nginx do Servidor)
+echo [PROXY] Configurando Nginx do servidor para o dominio...
+scp -o StrictHostKeyChecking=no -i "%KEY%" host_proxy.conf %USER%@%HOST%:/tmp/rifa_proxy.conf
+ssh -o StrictHostKeyChecking=no -i "%KEY%" %USER%@%HOST% "mv /tmp/rifa_proxy.conf /etc/nginx/sites-available/imperiodasrifas.app.br && ln -sf /etc/nginx/sites-available/imperiodasrifas.app.br /etc/nginx/sites-enabled/ && systemctl reload nginx"
+
+REM 9. Limpeza e Manutencao
 echo [LIMPEZA] Removendo arquivos e imagens nao utilizados no servidor...
 ssh -o StrictHostKeyChecking=no -i "%KEY%" %USER%@%HOST% "docker system prune -af"
 
