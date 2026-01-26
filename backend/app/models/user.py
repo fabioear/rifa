@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, String, Boolean, DateTime, Enum, Integer
 from sqlalchemy.sql import func
 from app.db.base_class import Base
 from app.db.mixins import TenantMixin
