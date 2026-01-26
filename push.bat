@@ -46,7 +46,7 @@ git push server main
 
 REM 5. Checkout no Servidor (Deploy)
 echo [DEPLOY] Atualizando arquivos no servidor...
-ssh -o StrictHostKeyChecking=no -i "%KEY%" %USER%@%HOST% "git --work-tree=/var/www/rifa --git-dir=/var/www/rifa.git checkout -f"
+ssh -o StrictHostKeyChecking=no -i "%KEY%" %USER%@%HOST% "git --work-tree=/var/www/rifa --git-dir=/var/www/rifa.git checkout -f main"
 
 REM 6. Enviar .env
 echo [DEPLOY] Enviando arquivo .env...
