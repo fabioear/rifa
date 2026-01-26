@@ -19,7 +19,7 @@ const Clientes: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentCliente, setCurrentCliente] = useState<Partial<Cliente>>({});
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'ADMIN';
   // Silencing unused variable warning if user is not used
   console.log('User:', user, 'IsAdmin:', isAdmin);
 

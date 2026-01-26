@@ -22,11 +22,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['user', 'admin', 'global_admin'] },
-    { name: 'Clientes', href: '/clientes', icon: Users, roles: ['user', 'admin', 'global_admin'] },
-    { name: 'Rifas', href: '/rifas', icon: Ticket, roles: ['user', 'admin', 'global_admin'] },
-    { name: 'Sorteios', href: '/sorteios', icon: Gift, roles: ['user', 'admin', 'global_admin'] },
-    { name: 'Usuários', href: '/users', icon: UserCheck, roles: ['admin', 'global_admin'] }, // Only Admins
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['USER', 'ADMIN', 'GLOBAL_ADMIN'] },
+    { name: 'Clientes', href: '/clientes', icon: Users, roles: ['USER', 'ADMIN', 'GLOBAL_ADMIN'] },
+    { name: 'Rifas', href: '/rifas', icon: Ticket, roles: ['USER', 'ADMIN', 'GLOBAL_ADMIN'] },
+    { name: 'Sorteios', href: '/sorteios', icon: Gift, roles: ['USER', 'ADMIN', 'GLOBAL_ADMIN'] },
+    { name: 'Usuários', href: '/users', icon: UserCheck, roles: ['ADMIN', 'GLOBAL_ADMIN'] }, // Only Admins
   ];
 
   const filteredNavigation = navigation.filter(item => 

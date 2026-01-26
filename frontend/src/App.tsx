@@ -24,7 +24,7 @@ function App() {
               <Route path="/sorteios" element={<Sorteios />} />
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['admin', 'global_admin']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'GLOBAL_ADMIN']} />}>
               <Route path="/users" element={<UsersPage />} />
             </Route>
 

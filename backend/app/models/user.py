@@ -6,9 +6,9 @@ from app.db.mixins import TenantMixin
 from sqlalchemy.orm import relationship
 
 class UserRole(str, enum.Enum):
-    GLOBAL_ADMIN = "global_admin"
-    ADMIN = "admin" # Tenant Admin
-    USER = "user"   # Tenant User
+    GLOBAL_ADMIN = "GLOBAL_ADMIN"
+    ADMIN = "ADMIN" # Tenant Admin
+    USER = "USER"   # Tenant User
 
 class UserTheme(str, enum.Enum):
     LIGHT = "light"

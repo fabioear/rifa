@@ -6,7 +6,7 @@ interface User {
   id: number;
   email: string;
   nome: string;
-  role: 'global_admin' | 'admin' | 'user';
+  role: 'GLOBAL_ADMIN' | 'ADMIN' | 'USER';
   theme: 'light' | 'dark';
   tenant_id: number;
 }

@@ -15,7 +15,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
             <h3 className="text-lg font-medium text-blue-800 dark:text-blue-300">Tenant Atual</h3>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">
-              {user?.role === 'global_admin' ? 'Global Admin (All)' : `Tenant #${user?.tenant_id}`}
+              {user?.role === 'GLOBAL_ADMIN' ? 'Global Admin (All)' : `Tenant #${user?.tenant_id}`}
             </p>
           </div>
           {/* Add more stats widgets here */}
