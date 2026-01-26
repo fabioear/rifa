@@ -7,6 +7,9 @@ export PYTHONPATH=$PYTHONPATH:.
 python app/backend_pre_start.py
 
 # Run migrations
+# Ensure versions directory exists
+mkdir -p app/alembic/versions
+
 # Check if versions directory is empty or missing migration
 if [ -z "$(ls -A app/alembic/versions/*.py 2>/dev/null)" ]; then
     echo "No migrations found. Generating initial migration..."
