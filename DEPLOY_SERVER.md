@@ -8,12 +8,12 @@ Para implantar o sistema no servidor onde já existe outro sistema rodando ("imp
     Exemplo via SCP (rodar da sua máquina local Windows):
     ```powershell
     # Exemplo copiando tudo da pasta atual para a pasta /var/www/rifa no servidor
-    scp -r . root@177.131.169.119:/var/www/rifa
+    scp -r . root@191.252.218.33:/var/www/rifa
     ```
 
 2.  **Acesse o servidor via SSH**:
     ```bash
-    ssh root@177.131.169.119
+    ssh root@191.252.218.33
     
     # Crie a pasta se ainda não existir (caso o scp não crie)
     mkdir -p /var/www/rifa
@@ -24,7 +24,7 @@ Para implantar o sistema no servidor onde já existe outro sistema rodando ("imp
 
 3.  **Verifique o arquivo .env**:
     Certifique-se de que o arquivo `.env` foi copiado e contém a variável `VITE_API_URL` apontando para o IP do servidor:
-    `VITE_API_URL=http://177.131.169.119:8010/api/v1`
+    `VITE_API_URL=http://191.252.218.33:8010/api/v1`
 
 4.  **Suba os containers**:
     ```bash

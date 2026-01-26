@@ -31,16 +31,15 @@ REM Criar pasta remota
 echo [1/3] Criando pasta remota %REMOTE_DIR%...
 ssh -o IdentitiesOnly=yes -i "%KEY%" %USER%@%HOST% "mkdir -p %REMOTE_DIR%"
 
-REM Copiar arquivos (Usando SCP)
-echo [2/3] Copiando arquivos para o servidor...
-REM Copia arquivos essenciais e pastas. 
-REM Nota: SCP recursivo pode ser lento se tiver node_modules. 
-REM O ideal seria usar rsync ou git pull no servidor, mas vamos garantir o envio dos configs.
+REM Copiar arquivos (Usando Git + SCP para configs)
+echo [2/3] Atualizando arquivos no servidor...
 
+REM Envia apenas o .env e docker-compose.yml via SCP (rapido)
 scp -o IdentitiesOnly=yes -i "%KEY%" .env %USER%@%HOST%:%REMOTE_DIR%/.env
 scp -o IdentitiesOnly=yes -i "%KEY%" docker-compose.yml %USER%@%HOST%:%REMOTE_DIR%/docker-compose.yml
-scp -o IdentitiesOnly=yes -i "%KEY%" -r backend %USER%@%HOST%:%REMOTE_DIR%/
-scp -o IdentitiesOnly=yes -i "%KEY%" -r frontend %USER%@%HOST%:%REMOTE_DIR%/
+
+REM Atualiza codigo via Git no servidor (muito mais rapido que SCP)
+ssh -o IdentitiesOnly=yes -i "%KEY%" %USER%@%HOST% "if [ ! -d %REMOTE_DIR%/.git ]; then git clone https://github.com/fabioear/rifa.git %REMOTE_DIR%; else cd %REMOTE_DIR% && git pull origin main; fi"
 
 REM Executar Docker Compose
 echo [3/3] Atualizando containers no servidor...
