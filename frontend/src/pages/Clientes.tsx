@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import api from '../api/axios';
-import { Loader2, Plus, Edit2, Search, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Plus, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Cliente {
@@ -15,7 +15,7 @@ interface Cliente {
 const Clientes: React.FC = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentCliente, setCurrentCliente] = useState<Partial<Cliente>>({});
   const { user } = useAuth();
