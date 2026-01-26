@@ -1,5 +1,8 @@
 #! /usr/bin/env bash
 
+# Set PYTHONPATH to current directory
+export PYTHONPATH=$PYTHONPATH:.
+
 # Let the DB start
 python app/backend_pre_start.py
 
