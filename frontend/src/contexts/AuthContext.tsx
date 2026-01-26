@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import api from '../api/axios';
 import { useTheme } from './ThemeContext';
 

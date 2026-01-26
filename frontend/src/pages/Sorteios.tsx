@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import api from '../api/axios';
-import { Loader2, Plus, Gift } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 
 interface Sorteio {
   id: number;

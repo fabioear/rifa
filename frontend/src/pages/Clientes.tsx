@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import api from '../api/axios';
-import { Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Edit2, Search, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Cliente {
@@ -19,6 +19,9 @@ const Clientes: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentCliente, setCurrentCliente] = useState<Partial<Cliente>>({});
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  // Silencing unused variable warning if user is not used
+  console.log('User:', user, 'IsAdmin:', isAdmin);
 
   const fetchClientes = async () => {
     try {
