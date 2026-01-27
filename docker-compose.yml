@@ -16,7 +16,7 @@ services:
     build: ./frontend
     container_name: frontend_rifas
     ports:
-      - "8801:5173"
+      - "8801:80"
     env_file:
       - .env
     environment:
