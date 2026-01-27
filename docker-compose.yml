@@ -3,13 +3,16 @@ version: '3.8'
 services:
   backend_rifas:
     build: ./backend
-    container_name: backend_rifas
+    container_name: rifa-backend
     ports:
       - "8800:8000"
     env_file:
       - .env
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend_rifas:
@@ -36,6 +39,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 volumes:
