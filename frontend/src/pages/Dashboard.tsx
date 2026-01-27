@@ -20,7 +20,7 @@ const Dashboard: React.FC = () => {
         local_sorteio: '',
         data_sorteio: '',
         hora_encerramento: '',
-        status: RifaStatus.DRAFT,
+        status: RifaStatus.RASCUNHO,
         quantidade_numeros: 0
     });
 
@@ -42,7 +42,8 @@ const Dashboard: React.FC = () => {
             // For now, let's try to get it from a new endpoint or default.
             // Wait, we need to create the endpoint first.
             // Let's assume we will create /api/v1/admin/settings
-             const response = await axios.get('http://localhost:8000/api/v1/admin/settings', {
+             const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+             const response = await axios.get(`${apiUrl}/admin/settings`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (response.data && response.data.fechamento_minutos) {
@@ -55,7 +56,8 @@ const Dashboard: React.FC = () => {
 
     const fetchSorteios = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/v1/sorteios/', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            const response = await axios.get(`${apiUrl}/sorteios/`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setSorteios(response.data);
@@ -66,7 +68,8 @@ const Dashboard: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/v1/rifas/', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            const response = await axios.get(`${apiUrl}/rifas/`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setRifas(response.data);
@@ -137,7 +140,8 @@ const Dashboard: React.FC = () => {
                 hora_encerramento: newRifa.hora_encerramento ? new Date(newRifa.hora_encerramento).toISOString() : null
             };
 
-            await axios.post('http://localhost:8000/api/v1/rifas/', payload, {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            await axios.post(`${apiUrl}/rifas/`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setShowForm(false);
@@ -149,7 +153,7 @@ const Dashboard: React.FC = () => {
                 local_sorteio: '',
                 data_sorteio: '',
                 hora_encerramento: '',
-                status: RifaStatus.DRAFT,
+                status: RifaStatus.RASCUNHO,
                 quantidade_numeros: 0
             });
             fetchData(); // Refresh list
@@ -162,7 +166,8 @@ const Dashboard: React.FC = () => {
 
     const handleStatusChange = async (id: string, newStatus: string) => {
         try {
-            await axios.patch(`http://localhost:8000/api/v1/rifas/${id}/status`, 
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            await axios.patch(`${apiUrl}/rifas/${id}/status`, 
                 { status: newStatus },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

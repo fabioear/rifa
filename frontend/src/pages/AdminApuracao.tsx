@@ -112,12 +112,17 @@ const AdminApuracao: React.FC = () => {
 
   const carregarRifasEncerradas = async () => {
     try {
+      setLoading(true);
+      const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
       const res = await axios.get<Rifa[]>(
-        "http://localhost:8000/api/v1/rifas/",
+        `${apiUrl}/rifas/`,
         { headers }
       );
       const filtradas = res.data.filter(
-        (r) => r.status === RifaStatus.ENCERRADA || r.status === RifaStatus.APURADA
+        (r) =>
+          r.status === RifaStatus.ATIVA ||
+          r.status === RifaStatus.ENCERRADA ||
+          r.status === RifaStatus.APURADA
       );
       setRifasEncerradas(filtradas);
       if (!rifaSelecionada && filtradas.length > 0) {
@@ -125,14 +130,17 @@ const AdminApuracao: React.FC = () => {
       }
     } catch (e) {
       setError(mapApiError(e));
+    } finally {
+      setLoading(false);
     }
   };
 
   const carregarResumo = async () => {
     if (!rifaSelecionada) return;
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
       const res = await axios.get<RifaResumo>(
-        `http://localhost:8000/api/v1/admin/rifas/${rifaSelecionada}/resumo`,
+        `${apiUrl}/admin/rifas/${rifaSelecionada}/resumo`,
         { headers }
       );
       setResumo(res.data);
@@ -144,8 +152,9 @@ const AdminApuracao: React.FC = () => {
   const carregarGanhadores = async () => {
     if (!rifaSelecionada) return;
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
       const res = await axios.get<GanhadoresResponse>(
-        `http://localhost:8000/api/v1/admin/rifas/${rifaSelecionada}/ganhadores`,
+        `${apiUrl}/admin/rifas/${rifaSelecionada}/ganhadores`,
         { headers }
       );
       setGanhadoresResponse(res.data);
@@ -168,8 +177,9 @@ const AdminApuracao: React.FC = () => {
     setMessage(null);
     setError(null);
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
       await axios.post(
-        `http://localhost:8000/api/v1/admin/rifas/${rifaSelecionada}/resultado`,
+        `${apiUrl}/admin/rifas/${rifaSelecionada}/resultado`,
         {
           resultado: resultadoForm.resultado,
           local_sorteio: selectedRifa.local_sorteio,

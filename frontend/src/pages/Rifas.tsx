@@ -6,7 +6,7 @@ import { Rifa, RifaStatus } from '../types';
 import { mapApiError } from '../utils/mapApiError';
 
 const Rifas: React.FC = () => {
-    const { token, user } = useAuth();
+    const { token } = useAuth();
     const navigate = useNavigate();
     const [rifas, setRifas] = useState<Rifa[]>([]);
     const [loading, setLoading] = useState(true);
@@ -18,7 +18,8 @@ const Rifas: React.FC = () => {
 
     const fetchRifas = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/v1/rifas/', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            const response = await axios.get(`${apiUrl}/rifas/`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setRifas(response.data);

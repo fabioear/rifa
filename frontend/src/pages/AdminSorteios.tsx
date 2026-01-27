@@ -24,7 +24,8 @@ const AdminSorteios: React.FC = () => {
     const fetchSorteios = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:8000/api/v1/sorteios/?only_active=false', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            const response = await axios.get(`${apiUrl}/sorteios/?only_active=false`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setSorteios(response.data);
@@ -39,12 +40,13 @@ const AdminSorteios: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
             if (editingId) {
-                await axios.put(`http://localhost:8000/api/v1/sorteios/${editingId}`, formData, {
+                await axios.put(`${apiUrl}/sorteios/${editingId}`, formData, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             } else {
-                await axios.post('http://localhost:8000/api/v1/sorteios/', formData, {
+                await axios.post(`${apiUrl}/sorteios/`, formData, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             }
@@ -71,7 +73,8 @@ const AdminSorteios: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (!confirm('Tem certeza que deseja excluir este sorteio?')) return;
         try {
-            await axios.delete(`http://localhost:8000/api/v1/sorteios/${id}`, {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            await axios.delete(`${apiUrl}/sorteios/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchSorteios();

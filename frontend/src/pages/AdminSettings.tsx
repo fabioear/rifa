@@ -16,7 +16,8 @@ const AdminSettings: React.FC = () => {
     const fetchSettings = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://localhost:8000/api/v1/admin/settings', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            const response = await axios.get(`${apiUrl}/admin/settings`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (response.data) {
@@ -34,7 +35,8 @@ const AdminSettings: React.FC = () => {
         e.preventDefault();
         try {
             setSaving(true);
-            await axios.put('http://localhost:8000/api/v1/admin/settings', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            await axios.put(`${apiUrl}/admin/settings`, {
                 fechamento_minutos: fechamentoMinutos
             }, {
                 headers: { Authorization: `Bearer ${token}` }

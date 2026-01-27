@@ -21,8 +21,9 @@ const MinhasCompras: React.FC = () => {
 
   const fetchData = async () => {
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
       const response = await axios.get<MinhaRifa[]>(
-        "http://localhost:8000/api/v1/rifas/user/minhas-rifas",
+        `${apiUrl}/rifas/user/minhas-rifas`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

@@ -64,11 +64,12 @@ const RifaNumeros: React.FC = () => {
 
     const fetchRifaAndNumeros = async () => {
         try {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
             const [rifaRes, numerosRes] = await Promise.all([
-                axios.get(`http://localhost:8000/api/v1/rifas/${id}`, {
+                axios.get(`${apiUrl}/rifas/${id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }),
-                axios.get(`http://localhost:8000/api/v1/rifas/${id}/numeros`, {
+                axios.get(`${apiUrl}/rifas/${id}/numeros`, {
                     headers: { Authorization: `Bearer ${token}` }
                 })
             ]);
@@ -84,16 +85,17 @@ const RifaNumeros: React.FC = () => {
     const handleReserve = async (numero: string) => {
         setError(null);
         try {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
             // 1. Reserve Number
             const reserveRes = await axios.post(
-                `http://localhost:8000/api/v1/rifas/${id}/numeros/${numero}/reservar`,
+                `${apiUrl}/rifas/${id}/numeros/${numero}/reservar`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
             // 2. Get Mock Payment Details
             const paymentRes = await axios.post(
-                `http://localhost:8000/api/v1/pagamentos/mock`,
+                `${apiUrl}/pagamentos/mock`,
                 { 
                     amount: rifa?.preco_numero || 10.0, 
                     description: `Reserva Rifa ${rifa?.titulo} - Nº ${numero}` 

@@ -74,7 +74,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             formData.append('username', email);
             formData.append('password', password);
 
-            const response = await axios.post('http://localhost:8000/api/v1/login/access-token', formData, {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            const response = await axios.post(`${apiUrl}/login/access-token`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -101,7 +102,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const register = async (email: string, password: string) => {
         setError(null);
         try {
-            await axios.post('http://localhost:8000/api/v1/users', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            await axios.post(`${apiUrl}/users`, {
                 email,
                 password
             });
