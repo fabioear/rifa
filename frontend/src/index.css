@@ -1,1 +1,42 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+  
+  body {
+    @apply bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-200;
+  }
+
+  /* Ensure inputs have correct colors in dark mode */
+  input, select, textarea {
+    @apply bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100;
+  }
+}
+
+/* Global Error Styles (kept from previous task) */
+.error-message {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+  display: block;
+}
+
+[data-theme='light'] .error-message {
+  color: #dc2626;
+}
+
+[data-theme='dark'] .error-message {
+  color: #f87171;
+}
+
+.input-error {
+  border-color: #dc2626 !important;
+}
+
+[data-theme='dark'] .input-error {
+  border-color: #f87171 !important;
+}

@@ -1,42 +1,31 @@
+/* Reset default Vite styles for #root */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Global Error Styles */
+.error-message {
+  font-size: 0.875rem; /* text-sm */
+  margin-top: 0.25rem; /* mt-1 */
+  font-weight: 500;
+  display: block;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+[data-theme='light'] .error-message {
+  color: #dc2626; /* text-red-600 */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+[data-theme='dark'] .error-message {
+  color: #f87171; /* text-red-400 */
 }
 
-.card {
-  padding: 2em;
+/* Input Error State */
+.input-error {
+  border-color: #dc2626 !important;
 }
 
-.read-the-docs {
-  color: #888;
+[data-theme='dark'] .input-error {
+  border-color: #f87171 !important;
 }

@@ -1,13 +1,16 @@
-import { createRoot } from 'react-dom/client'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
 import './index.css'
-import App from './App.tsx'
-import { AuthProvider } from './contexts/AuthContext'
-import { ThemeProvider } from './contexts/ThemeContext'
+import { ThemeProvider } from './theme/ThemeContext'
+import { AuthProvider } from './context/AuthContext'
 
-createRoot(document.getElementById('root')!).render(
-  <ThemeProvider>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  </ThemeProvider>
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+  <React.StrictMode>
+    <ThemeProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </ThemeProvider>
+  </React.StrictMode>,
 )

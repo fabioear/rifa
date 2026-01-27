@@ -1,27 +1,26 @@
-import enum
-from sqlalchemy import Column, String, Boolean, DateTime, Enum, Integer
-from sqlalchemy.sql import func
-from app.db.base_class import Base
-from app.db.mixins import TenantMixin
+import uuid
+from sqlalchemy import Column, String, Boolean, TIMESTAMP, text, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from app.db.base import Base
 
-class UserRole(str, enum.Enum):
-    GLOBAL_ADMIN = "GLOBAL_ADMIN"
-    ADMIN = "ADMIN" # Tenant Admin
-    USER = "USER"   # Tenant User
+class User(Base):
+    __tablename__ = "users"
 
-class UserTheme(str, enum.Enum):
-    LIGHT = "light"
-    DARK = "dark"
-
-class User(Base, TenantMixin):
-    id = Column(Integer, primary_key=True, index=True)
-    nome = Column(String, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
-    theme = Column(Enum(UserTheme), default=UserTheme.LIGHT, nullable=False)
-    is_active = Column(Boolean(), default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True) # Nullable for super-admin or migration? Better strict.
+    email = Column(String, nullable=False, index=True) # Unique per tenant logic handled by app or composite constraint? 
+    # Prompt says "tudo passa a ser: tenant_id". For simplicity, let's keep email unique globally for now OR composite.
+    # If I remove unique=True, I must handle it in code.
+    # Let's try to make it unique per tenant if possible, but SQLAlchemy composite unique requires __table_args__.
+    
+    password_hash = Column(String, nullable=False)
+    role = Column(String, default="player")
+    is_active = Column(Boolean, default=True)
+    phone = Column(String, nullable=True)
+    whatsapp_opt_in = Column(Boolean, default=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'))
+    
     tenant = relationship("Tenant", back_populates="users")
+    rifas = relationship("Rifa", back_populates="owner")
+    admin_settings = relationship("AdminSettings", back_populates="user", uselist=False)

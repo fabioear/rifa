@@ -1,22 +1,23 @@
 from typing import Optional
+from datetime import time
+from uuid import UUID
 from pydantic import BaseModel
-from datetime import datetime
 
 class SorteioBase(BaseModel):
-    rifa_id: int
-    numero_sorteio: int
-    descricao_premio: str
-    data_sorteio: Optional[datetime] = None
-    ganhador_id: Optional[int] = None
+    nome: str
+    horario: time
+    ativo: bool = True
 
 class SorteioCreate(SorteioBase):
     pass
 
-# No Update Schema as per requirement
+class SorteioUpdate(BaseModel):
+    nome: Optional[str] = None
+    horario: Optional[time] = None
+    ativo: Optional[bool] = None
 
-class Sorteio(SorteioBase):
-    id: int
-    tenant_id: int
+class SorteioResponse(SorteioBase):
+    id: UUID
 
     class Config:
         from_attributes = True

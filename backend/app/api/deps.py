@@ -1,77 +1,61 @@
 from typing import Generator, Optional
-from fastapi import Depends, HTTPException, status, Header
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
-from pydantic import ValidationError
 from sqlalchemy.orm import Session
-
-from app import models, schemas
-from app.core import security
+from app.db.session import get_db
 from app.core.config import settings
-from app.db.session import SessionLocal, tenant_context
+from app.models.user import User
+from app.models.tenant import Tenant
+from app.core.tenant import get_tenant_by_host
+from pydantic import BaseModel
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/login/access-token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/access-token")
 
-def get_db() -> Generator:
-    try:
-        db = SessionLocal()
-        yield db
-    finally:
-        db.close()
+class TokenData(BaseModel):
+    id: Optional[str] = None
+    role: Optional[str] = None
 
 def get_current_user(
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db), 
     token: str = Depends(oauth2_scheme),
-    x_tenant_id: Optional[str] = Header(None, alias="X-Tenant-ID")
-) -> models.User:
+    current_tenant: Tenant = Depends(get_tenant_by_host)
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
-        )
-        token_data = schemas.TokenPayload(**payload)
-    except (JWTError, ValidationError):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Could not validate credentials",
-        )
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        role: str = payload.get("role")
+        if user_id is None:
+            raise credentials_exception
+        token_data = TokenData(id=user_id, role=role)
+    except JWTError:
+        raise credentials_exception
     
-    # Query user - At this point tenant_context is likely None (default), 
-    # so we search globally, which is what we want for authentication.
-    user = db.query(models.User).filter(models.User.id == token_data.sub).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Set Tenant Context for the rest of the request
-    if user.role == models.UserRole.GLOBAL_ADMIN:
-        # Global Admin can impersonate a tenant or see all
-        if x_tenant_id:
-            try:
-                tid = int(x_tenant_id)
-                tenant_context.set(tid)
-            except ValueError:
-                # If invalid, fallback to None (Global view) or raise. 
-                # Let's fallback to Global View but maybe log it.
-                tenant_context.set(None)
-        else:
-            tenant_context.set(None)
-    else:
-        # Regular users are strictly bound to their tenant
-        tenant_context.set(user.tenant_id)
-        
+    # Ensure user belongs to the current tenant
+    user = db.query(User).filter(User.id == token_data.id, User.tenant_id == current_tenant.id).first()
+    if user is None:
+        # Check if user exists but in another tenant (security measure)
+        # For now, just raise credentials exception
+        raise credentials_exception
     return user
 
 def get_current_active_user(
-    current_user: models.User = Depends(get_current_user),
-) -> models.User:
+    current_user: User = Depends(get_current_user),
+) -> User:
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
 def get_current_active_superuser(
-    current_user: models.User = Depends(get_current_user),
-) -> models.User:
-    if current_user.role != models.UserRole.GLOBAL_ADMIN:
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    if current_user.role != "admin":
         raise HTTPException(
-            status_code=400, detail="The user doesn't have enough privileges"
+            status_code=403, detail="The user doesn't have enough privileges"
         )
     return current_user

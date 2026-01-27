@@ -1,31 +1,16 @@
-# Stage 1: Build the React application
-FROM node:22-alpine as build
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Build arguments
-# ARG VITE_API_URL
-# ENV VITE_API_URL=$VITE_API_URL
+COPY package*.json ./
 
-# Install dependencies
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
-# Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Expose internal port
+EXPOSE 5173
 
-# Stage 2: Serve the application with Nginx
-FROM nginx:alpine
-
-# Copy built assets from builder stage
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Add nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+# Run in development mode (or preview if built)
+# Using dev mode with --host to allow external access
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

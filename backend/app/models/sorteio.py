@@ -1,16 +1,13 @@
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
-from app.db.base_class import Base
-from app.db.mixins import TenantMixin
+import uuid
+from sqlalchemy import Column, String, Boolean, Time
+from sqlalchemy.dialects.postgresql import UUID
+from app.db.base import Base
 
-class Sorteio(Base, TenantMixin):
-    id = Column(Integer, primary_key=True, index=True)
-    rifa_id = Column(Integer, ForeignKey("rifa.id"), nullable=False)
-    numero_sorteio = Column(Integer, nullable=False) # e.g. 1st prize, 2nd prize
-    descricao_premio = Column(String, nullable=False)
-    data_sorteio = Column(DateTime(timezone=True))
-    
-    ganhador_id = Column(Integer, ForeignKey("cliente.id"), nullable=True)
-    
-    rifa = relationship("Rifa", back_populates="sorteios")
-    ganhador = relationship("Cliente")
+class Sorteio(Base):
+    __tablename__ = "sorteios"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    nome = Column(String, nullable=False, unique=True)
+    horario = Column(Time, nullable=False)
+    # limite_apostas removed per user request
+    ativo = Column(Boolean, default=True)
