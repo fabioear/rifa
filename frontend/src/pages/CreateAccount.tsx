@@ -34,7 +34,7 @@ const CreateAccount: React.FC = () => {
 
         if (!isPasswordValid) return;
 
-        const success = await register(email, password, phone, whatsappOptIn);
+        const success = await register(email, password, name, phone, whatsappOptIn);
         if (success) {
             navigate('/login');
         }

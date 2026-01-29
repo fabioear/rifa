@@ -9,6 +9,7 @@ class User(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True) # Nullable for super-admin or migration? Better strict.
+    name = Column(String, nullable=True)
     email = Column(String, nullable=False, index=True) # Unique per tenant logic handled by app or composite constraint? 
     # Prompt says "tudo passa a ser: tenant_id". For simplicity, let's keep email unique globally for now OR composite.
     # If I remove unique=True, I must handle it in code.

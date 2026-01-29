@@ -7,9 +7,52 @@ from app.core.config import settings
 from app.core import security
 from app.models.user import User
 from pydantic import BaseModel
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.api.deps import get_current_active_user
 
 router = APIRouter()
+
+@router.get("/users/me", response_model=UserResponse)
+def read_users_me(
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Get current user.
+    """
+    return current_user
+
+@router.patch("/users/me", response_model=UserResponse)
+def update_user_me(
+    user_in: UserUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Update current user.
+    """
+    if user_in.email is not None and user_in.email != current_user.email:
+         # Check if email already exists
+         user = db.query(User).filter(User.email == user_in.email).first()
+         if user:
+             raise HTTPException(
+                 status_code=400,
+                 detail="Email already registered",
+             )
+         current_user.email = user_in.email
+
+    if user_in.password is not None:
+        current_user.password_hash = security.get_password_hash(user_in.password)
+    if user_in.name is not None:
+        current_user.name = user_in.name
+    if user_in.phone is not None:
+        current_user.phone = user_in.phone
+    if user_in.whatsapp_opt_in is not None:
+        current_user.whatsapp_opt_in = user_in.whatsapp_opt_in
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
 
 class Token(BaseModel):
     access_token: str
@@ -63,7 +106,8 @@ def create_user(
         role="player", # Default role
         tenant_id=current_tenant.id,
         phone=user_in.phone,
-        whatsapp_opt_in=user_in.whatsapp_opt_in
+        whatsapp_opt_in=user_in.whatsapp_opt_in,
+        name=user_in.name
     )
     db.add(user)
     db.commit()

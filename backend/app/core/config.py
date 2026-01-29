@@ -18,8 +18,18 @@ class Settings:
     TWILIO_FROM_NUMBER: str = os.getenv("TWILIO_FROM_NUMBER", "whatsapp:+14155238886")
     TWILIO_ENABLED: bool = os.getenv("TWILIO_ENABLED", "False").lower() == "true"
     
+    # Meta / WhatsApp Cloud API
+    META_API_URL: str = os.getenv("META_API_URL", "https://graph.facebook.com/v21.0")
+    META_ACCESS_TOKEN: str = os.getenv("META_ACCESS_TOKEN", "")
+    META_PHONE_NUMBER_ID: str = os.getenv("META_PHONE_NUMBER_ID", "")
+    META_WHATSAPP_BUSINESS_ACCOUNT_ID: str = os.getenv("META_WHATSAPP_BUSINESS_ACCOUNT_ID", "")
+    META_ENABLED: bool = os.getenv("META_ENABLED", "False").lower() == "true"
+    
     # Templates
     TWILIO_TEMPLATE_NEW_RIFA: str = os.getenv("TWILIO_TEMPLATE_NEW_RIFA", "HXxxxx_new_rifa")
     TWILIO_TEMPLATE_WINNER: str = os.getenv("TWILIO_TEMPLATE_WINNER", "HXxxxx_winner")
+    
+    META_TEMPLATE_NEW_RIFA: str = os.getenv("META_TEMPLATE_NEW_RIFA", "nova_rifa_disponivel")
+    META_TEMPLATE_WINNER: str = os.getenv("META_TEMPLATE_WINNER", "usuario_ganhador")
 
 settings = Settings()

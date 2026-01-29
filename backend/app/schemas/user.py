@@ -5,6 +5,7 @@ import uuid
 
 class UserBase(BaseModel):
     email: EmailStr
+    name: Optional[str] = None
     is_active: Optional[bool] = True
     role: Optional[str] = "player"
     phone: Optional[str] = None
@@ -14,6 +15,8 @@ class UserCreate(UserBase):
     password: str
 
 class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    name: Optional[str] = None
     is_active: Optional[bool] = None
     role: Optional[str] = None
     phone: Optional[str] = None

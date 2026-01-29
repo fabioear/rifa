@@ -4,15 +4,30 @@ import { useTheme } from '../hooks/useTheme';
 import PasswordStrength from '../components/PasswordStrength';
 import { mapApiError } from '../utils/mapApiError';
 import { errorsPT } from '../i18n/errors.pt-BR';
+import axios from 'axios';
+
+const formatPhoneNumber = (value: string) => {
+    if (!value) return '';
+    const phoneNumber = value.replace(/[^\d]/g, '');
+    const phoneNumberLength = phoneNumber.length;
+    if (phoneNumberLength < 3) return phoneNumber;
+    if (phoneNumberLength < 7) {
+        return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+    }
+    if (phoneNumberLength < 11) {
+        return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 6)}-${phoneNumber.slice(6)}`;
+    }
+    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+};
 
 const Profile: React.FC = () => {
     const { user, logout } = useAuth();
     const { mode, toggleTheme } = useTheme();
 
-    // Mock initial state since backend doesn't provide all these fields yet
-    const [name, setName] = useState('Usuário');
-    const [email, setEmail] = useState(user?.email || '');
-    const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [whatsappEnabled, setWhatsappEnabled] = useState(false);
     
     // Password Change State
     const [currentPassword, setCurrentPassword] = useState('');
@@ -26,15 +41,59 @@ const Profile: React.FC = () => {
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
-        if (user?.email) setEmail(user.email);
+        const fetchProfile = async () => {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) return;
+                
+                const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+                const response = await axios.get(`${apiUrl}/users/me`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                
+                const userData = response.data;
+                setName(userData.name || '');
+                setEmail(userData.email || '');
+                setPhone(formatPhoneNumber(userData.phone || ''));
+                setWhatsappEnabled(userData.whatsapp_opt_in ?? false);
+            } catch (err) {
+                console.error("Erro ao carregar perfil:", err);
+                // Fallback to context user if API fails?
+                if (user?.email) setEmail(user.email);
+            }
+        };
+        fetchProfile();
     }, [user]);
 
-    const handleSaveProfile = (e: React.FormEvent) => {
+    const handleSaveProfile = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Mock API call
-        setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
-        setIsEditing(false);
+        setMessage(null);
+        
+        try {
+            const token = localStorage.getItem('access_token');
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            
+            await axios.patch(`${apiUrl}/users/me`, {
+                name,
+                phone: phone.replace(/\D/g, ''),
+                whatsapp_opt_in: whatsappEnabled
+            }, {
+                 headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
+            setIsEditing(false);
+        } catch (err: any) {
+            console.error("Erro ao salvar perfil:", err);
+            setMessage({ type: 'error', text: mapApiError(err) || 'Erro ao atualizar perfil.' });
+        }
+        
         setTimeout(() => setMessage(null), 3000);
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const formatted = formatPhoneNumber(e.target.value);
+        setPhone(formatted);
     };
 
     const handleChangePassword = (e: React.FormEvent) => {
@@ -118,6 +177,25 @@ const Profile: React.FC = () => {
                                             disabled={!isEditing}
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
+                                            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="sm:col-span-3">
+                                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Telefone
+                                    </label>
+                                    <div className="mt-1">
+                                        <input
+                                            type="text"
+                                            name="phone"
+                                            id="phone"
+                                            disabled={!isEditing}
+                                            value={phone}
+                                            onChange={handlePhoneChange}
+                                            placeholder="(xx) xxxxx-xxxx"
+                                            maxLength={15}
                                             className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500"
                                         />
                                     </div>

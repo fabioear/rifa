@@ -14,35 +14,17 @@ from app.core.config import settings
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("twilio.http_client").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-def test_send_message(to_number):
-    print(f"\n--- Testing WhatsApp Sending to {to_number} ---")
-    print(f"Twilio Enabled: {settings.TWILIO_ENABLED}")
-    print(f"From Number: {settings.TWILIO_FROM_NUMBER}")
-    print(f"Template New Rifa: {settings.TWILIO_TEMPLATE_NEW_RIFA}")
-    print(f"Template Winner: {settings.TWILIO_TEMPLATE_WINNER}")
-    
-    if not settings.TWILIO_ACCOUNT_SID or not settings.TWILIO_AUTH_TOKEN:
-        print("\n[ERROR] Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN in .env")
-        print("Please open backend/.env and fill in your Twilio credentials.")
-        return
-
-    if not settings.TWILIO_ENABLED:
-        print("\n[WARNING] TWILIO_ENABLED is False in .env. Messages will NOT be sent.")
-        # We continue to show what would happen, or just return. 
-        # But usually we want to test if it IS enabled.
-        print("Enable it in .env to send real messages.")
-        return
-
-import time
-from twilio.base.exceptions import TwilioRestException
-
-# ... (imports remain the same)
-
-def check_delivery_status(sid):
+def check_twilio_delivery_status(sid):
     """Polls Twilio for the message delivery status."""
-    print(f"   >> Polling delivery status for {sid}...")
+    if not settings.TWILIO_ENABLED or not whatsapp_service.client:
+        return
+
+    import time
+    print(f"   >> Polling Twilio delivery status for {sid}...")
     for _ in range(10):  # Check for 20 seconds
         try:
             msg = whatsapp_service.client.messages(sid).fetch()
@@ -61,10 +43,26 @@ def check_delivery_status(sid):
     print("      (Stopped polling, check WhatsApp)")
 
 def test_send_message(to_number):
-    # ... (setup code remains the same)
+    print(f"\n--- Testing WhatsApp Sending to {to_number} ---")
     
-    # ... inside the sending blocks:
+    # Meta Status
+    print(f"\n[Meta WhatsApp Cloud API]")
+    print(f"Enabled: {settings.META_ENABLED}")
+    print(f"API URL: {settings.META_API_URL}")
+    print(f"Phone ID: {settings.META_PHONE_NUMBER_ID}")
+    print(f"Template New Rifa: {settings.META_TEMPLATE_NEW_RIFA}")
+    print(f"Template Winner: {settings.META_TEMPLATE_WINNER}")
+
+    # Twilio Status
+    print(f"\n[Twilio]")
+    print(f"Enabled: {settings.TWILIO_ENABLED}")
+    print(f"From Number: {settings.TWILIO_FROM_NUMBER}")
     
+    if not settings.META_ENABLED and not settings.TWILIO_ENABLED:
+        print("\n[WARNING] BOTH Meta and Twilio are DISABLED. Messages will NOT be sent.")
+        print("Enable at least one in .env to send real messages.")
+        return
+
     # 1. Test New Rifa
     print("\n1. Sending 'New Rifa' Notification...")
     try:
@@ -75,8 +73,11 @@ def test_send_message(to_number):
             tipo="Teste"
         )
         if sid:
-            print(f">> 'New Rifa' message triggered. SID: {sid}")
-            check_delivery_status(sid)
+            print(f">> 'New Rifa' message triggered. ID: {sid}")
+            if settings.TWILIO_ENABLED and not settings.META_ENABLED:
+                 check_twilio_delivery_status(sid)
+            elif settings.META_ENABLED:
+                 print("   (Meta delivery status check not implemented in script, check phone)")
         else:
             print(">> Failed to trigger 'New Rifa' (Check logs)")
     except Exception as e:
@@ -91,8 +92,11 @@ def test_send_message(to_number):
             numero_sorteado="777"
         )
         if sid:
-            print(f">> 'Winner' message triggered. SID: {sid}")
-            check_delivery_status(sid)
+            print(f">> 'Winner' message triggered. ID: {sid}")
+            if settings.TWILIO_ENABLED and not settings.META_ENABLED:
+                 check_twilio_delivery_status(sid)
+            elif settings.META_ENABLED:
+                 print("   (Meta delivery status check not implemented in script, check phone)")
         else:
             print(">> Failed to trigger 'Winner' (Check logs)")
     except Exception as e:
