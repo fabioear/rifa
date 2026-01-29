@@ -16,16 +16,24 @@ def get_db():
 def get_tenant_by_host(request: Request, db: Session = Depends(get_db)) -> Tenant:
     host = request.headers.get("host", "").split(":")[0] # Remove port if present
     
-    # In development, fallback to localhost if no specific domain found
-    # Or strict white-label:
-    
+    # Force production tenant on localhost for development to access production data
+    if host == "127.0.0.1" or host == "localhost":
+        tenant = db.query(Tenant).filter(Tenant.domain == "imperiodasrifas.app.br").first()
+        if tenant:
+            return tenant
+
     tenant = db.query(Tenant).filter(Tenant.domain == host).first()
     
     if not tenant:
-        # Fallback for localhost development (if not explicitly "localhost" in DB)
-        # But we added "localhost" in populate_data.
-        # If accessing via IP 127.0.0.1, it might fail if DB has "localhost"
-        if host == "127.0.0.1":
+        # Fallback for localhost development:
+        # Redirect localhost to the main production tenant ("Imperio das Rifas")
+        # so we can see/manage production data locally.
+        if host == "127.0.0.1" or host == "localhost":
+             tenant = db.query(Tenant).filter(Tenant.domain == "imperiodasrifas.app.br").first()
+             
+        # If still not found (e.g. production tenant domain changed or not seeded), 
+        # try finding the specific "localhost" tenant as a last resort
+        if not tenant and (host == "127.0.0.1" or host == "localhost"):
              tenant = db.query(Tenant).filter(Tenant.domain == "localhost").first()
     
     if not tenant:

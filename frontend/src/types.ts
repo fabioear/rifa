@@ -104,6 +104,5 @@ export interface Sorteio {
     id: string;
     nome: string;
     horario: string;
-    limite_apostas: string;
     ativo: boolean;
 }

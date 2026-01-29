@@ -75,7 +75,42 @@ def notify_winners_task(rifa_id: uuid.UUID, tenant_id: uuid.UUID):
 
 router = APIRouter()
 
-from app.schemas.user import UserResponse
+from app.schemas.user import UserResponse, UserUpdate
+from app.core.security import get_password_hash
+
+@router.put("/users/{user_id}", response_model=UserResponse)
+def update_user(
+    user_id: uuid.UUID,
+    user_in: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+    current_tenant: Tenant = Depends(get_tenant_by_host)
+):
+    """
+    Update a user.
+    """
+    user = db.query(User).filter(
+        User.id == user_id,
+        User.tenant_id == current_tenant.id
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user_in.is_active is not None:
+        user.is_active = user_in.is_active
+    if user_in.role is not None:
+        user.role = user_in.role
+    if user_in.phone is not None:
+        user.phone = user_in.phone
+    if user_in.whatsapp_opt_in is not None:
+        user.whatsapp_opt_in = user_in.whatsapp_opt_in
+    if user_in.password:
+        user.hashed_password = get_password_hash(user_in.password)
+        
+    db.commit()
+    db.refresh(user)
+    return user
 
 @router.get("/users", response_model=List[UserResponse])
 def get_users(

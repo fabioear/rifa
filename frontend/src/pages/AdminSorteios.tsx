@@ -98,23 +98,23 @@ const AdminSorteios: React.FC = () => {
     return (
         <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gerenciar Sorteios</h1>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Locais de Sorteio</h1>
                 <button 
                     onClick={handleNew}
                     className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
                 >
-                    Novo Sorteio
+                    Novo Local
                 </button>
             </div>
 
             {showForm && (
                 <div className="mb-8 bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
                     <h2 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
-                        {editingId ? 'Editar Sorteio' : 'Novo Sorteio'}
+                        {editingId ? 'Editar Local' : 'Novo Local'}
                     </h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome do Local</label>
                             <input 
                                 type="text" 
                                 value={formData.nome}
