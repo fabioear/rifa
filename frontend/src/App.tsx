@@ -11,13 +11,9 @@ import RifaNumeros from './pages/RifaNumeros';
 import AdminApuracao from './pages/AdminApuracao';
 import AdminSorteios from './pages/AdminSorteios';
 import AdminSettings from './pages/AdminSettings';
+import AdminUsuarios from './pages/AdminUsuarios';
 import MinhasCompras from './pages/MinhasCompras';
 import HeroIllustration from './components/HeroIllustration';
-
-// Simple placeholder for missing pages
-const Placeholder: React.FC<{ title: string }> = ({ title }) => (
-  <div className="p-8"><h1 className="text-2xl font-bold dark:text-white">{title}</h1><p className="dark:text-gray-300">Em construção...</p></div>
-);
 
 const App: React.FC = () => {
   return (
@@ -41,7 +37,7 @@ const App: React.FC = () => {
           <Route path="admin-settings" element={<AdminSettings />} />
           <Route path="admin-apuracao" element={<AdminApuracao />} />
           <Route path="hero" element={<div style={{ height: '100vh' }}><HeroIllustration /></div>} />
-          <Route path="usuarios" element={<Placeholder title="Gestão de Usuários" />} />
+          <Route path="usuarios" element={<AdminUsuarios />} />
           
           <Route path="minhas-compras" element={<MinhasCompras />} />
         </Route>

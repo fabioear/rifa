@@ -6,26 +6,14 @@ from app.api import deps
 from app.core.config import settings
 from app.core import security
 from app.models.user import User
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
+from app.schemas.user import UserCreate, UserResponse
 
 router = APIRouter()
 
 class Token(BaseModel):
     access_token: str
     token_type: str
-
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
-
-class UserResponse(BaseModel):
-    id: str
-    email: str
-    is_active: bool
-    role: str
-    
-    class Config:
-        from_attributes = True
 
 @router.post("/login/access-token", response_model=Token)
 def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(deps.get_db)):
@@ -73,7 +61,9 @@ def create_user(
         password_hash=security.get_password_hash(user_in.password),
         is_active=True,
         role="player", # Default role
-        tenant_id=current_tenant.id
+        tenant_id=current_tenant.id,
+        phone=user_in.phone,
+        whatsapp_opt_in=user_in.whatsapp_opt_in
     )
     db.add(user)
     db.commit()

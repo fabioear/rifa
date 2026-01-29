@@ -28,16 +28,24 @@ class WhatsAppService:
             if not to.startswith("whatsapp:"):
                 # Remove spaces, dashes, parens
                 clean_number = "".join(filter(str.isdigit, to))
-                # Add country code if missing? Assuming input has it or we default to something.
-                # Usually user inputs with DD. E.g. 552199999999.
+                
+                # Brazil specific: If length is 10 or 11 (DDD + Number), add 55
+                if len(clean_number) in [10, 11]:
+                    clean_number = f"55{clean_number}"
+
                 # If no +, add it.
                 if not to.startswith("+"):
                      to = f"+{clean_number}"
                 to = f"whatsapp:{to}"
             
+            # Ensure from_number has whatsapp: prefix
+            from_number = settings.TWILIO_FROM_NUMBER
+            if not from_number.startswith("whatsapp:"):
+                from_number = f"whatsapp:{from_number}"
+
             # Send using Content API (Templates)
             message = self.client.messages.create(
-                from_=settings.TWILIO_FROM_NUMBER,
+                from_=from_number,
                 to=to,
                 content_sid=content_sid,
                 content_variables=json.dumps(content_variables)

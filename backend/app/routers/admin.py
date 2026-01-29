@@ -75,6 +75,24 @@ def notify_winners_task(rifa_id: uuid.UUID, tenant_id: uuid.UUID):
 
 router = APIRouter()
 
+from app.schemas.user import UserResponse
+
+@router.get("/users", response_model=List[UserResponse])
+def get_users(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+    current_tenant: Tenant = Depends(get_tenant_by_host)
+):
+    """
+    List all users in the current tenant.
+    """
+    users = db.query(User).filter(
+        User.tenant_id == current_tenant.id
+    ).offset(skip).limit(limit).all()
+    return users
+
 @router.get("/financeiro")
 def get_financeiro_global(
     start_date: Optional[datetime] = None,

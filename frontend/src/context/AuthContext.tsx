@@ -14,7 +14,7 @@ interface AuthContextType {
     token: string | null;
     user: User | null;
     login: (email: string, password: string) => Promise<boolean>;
-    register: (email: string, password: string) => Promise<boolean>;
+    register: (email: string, password: string, phone?: string, whatsappOptIn?: boolean) => Promise<boolean>;
     logout: () => void;
     error: string | null;
     isAuthenticated: boolean;
@@ -99,13 +99,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const register = async (email: string, password: string) => {
+    const register = async (email: string, password: string, phone?: string, whatsappOptIn?: boolean) => {
         setError(null);
         try {
             const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
             await axios.post(`${apiUrl}/users`, {
                 email,
-                password
+                password,
+                phone,
+                whatsapp_opt_in: whatsappOptIn
             });
             // Auto login after register or redirect to login? 
             // For now, let's just return true and let UI decide (usually redirect to login)

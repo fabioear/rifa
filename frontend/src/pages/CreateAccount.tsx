@@ -10,6 +10,7 @@ import PasswordStrength from '../components/PasswordStrength';
 const CreateAccount: React.FC = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [whatsappOptIn, setWhatsappOptIn] = useState(false);
@@ -33,7 +34,7 @@ const CreateAccount: React.FC = () => {
 
         if (!isPasswordValid) return;
 
-        const success = await register(email, password);
+        const success = await register(email, password, phone, whatsappOptIn);
         if (success) {
             navigate('/login');
         }
@@ -42,6 +43,7 @@ const CreateAccount: React.FC = () => {
     const isFormValid = 
         name.trim() !== '' && 
         email.trim() !== '' && 
+        phone.trim() !== '' &&
         password !== '' && 
         confirmPassword !== '' &&
         password === confirmPassword &&
@@ -347,14 +349,28 @@ const CreateAccount: React.FC = () => {
                         </div>
 
                         <div className="input-group">
-                            <label>E-mail</label>
-                            <input 
-                                type="email" 
-                                className="input-field"
-                                value={email} 
-                                onChange={(e) => setEmail(e.target.value)} 
-                                required 
+                            <label htmlFor="email">Email</label>
+                            <input
+                                id="email"
+                                type="email"
                                 placeholder="seu@email.com"
+                                className="input-field"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div className="input-group">
+                            <label htmlFor="phone">WhatsApp / Telefone</label>
+                            <input
+                                id="phone"
+                                type="tel"
+                                placeholder="(11) 99999-9999"
+                                className="input-field"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                required
                             />
                         </div>
 

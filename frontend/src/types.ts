@@ -3,6 +3,9 @@ export interface User {
     email: string;
     role: 'admin' | 'player';
     is_active: boolean;
+    phone?: string;
+    whatsapp_opt_in?: boolean;
+    created_at?: string;
 }
 
 export enum RifaStatus {
