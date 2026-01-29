@@ -26,10 +26,10 @@ class Settings:
     META_ENABLED: bool = os.getenv("META_ENABLED", "False").lower() == "true"
     
     # Templates
-    TWILIO_TEMPLATE_NEW_RIFA: str = os.getenv("TWILIO_TEMPLATE_NEW_RIFA", "HXxxxx_new_rifa")
-    TWILIO_TEMPLATE_WINNER: str = os.getenv("TWILIO_TEMPLATE_WINNER", "HXxxxx_winner")
+    TWILIO_TEMPLATE_NEW_RIFA: str = os.getenv("TWILIO_TEMPLATE_NEW_RIFA", "HXbd05f29a33cce5bc6dac28f12c382e42")
+    TWILIO_TEMPLATE_WINNER: str = os.getenv("TWILIO_TEMPLATE_WINNER", "HXa99151f37766eed0919a620227b2bdb9")
     
     META_TEMPLATE_NEW_RIFA: str = os.getenv("META_TEMPLATE_NEW_RIFA", "nova_rifa_disponivel")
-    META_TEMPLATE_WINNER: str = os.getenv("META_TEMPLATE_WINNER", "usuario_ganhador")
+    META_TEMPLATE_WINNER: str = os.getenv("META_TEMPLATE_WINNER", "rifa_resultado_ganhador")
 
 settings = Settings()

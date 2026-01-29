@@ -53,6 +53,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [error, setError] = useState<string | null>(null);
     const { setTheme } = useTheme();
 
+    // Intercept 401 responses to auto-logout
+    useEffect(() => {
+        const interceptor = axios.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response?.status === 401) {
+                    setToken(null);
+                    localStorage.removeItem('access_token');
+                    setUser(null);
+                }
+                return Promise.reject(error);
+            }
+        );
+        return () => {
+            axios.interceptors.response.eject(interceptor);
+        };
+    }, []);
+
     useEffect(() => {
         if (token) {
             const userData = parseJwt(token);

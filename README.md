@@ -43,7 +43,10 @@ Sistema completo de gestão de rifas com Backend (FastAPI) e Frontend (React/Vit
    cp .env.example .env
    nano .env
    ```
-   *Ajuste a `DATABASE_URL` e credenciais do Twilio.*
+   *Ajustes Críticos:*
+   - `DATABASE_URL`: Conexão do banco de produção.
+   - `ACCESS_TOKEN_EXPIRE_MINUTES=10080`: (Importante!) Define sessão de 7 dias para evitar logouts frequentes.
+   - `TWILIO_ENABLED=True`: Habilita envio de mensagens.
 
 3. **Execute o Deploy**:
    ```bash
