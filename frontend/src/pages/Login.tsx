@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
-import mascoteLogo from '../assets/mascotelogo.png';
+import mascoteLogo from '../assets/logo.png';
 import logoRifa from '../assets/logorifa.png';
 
 const Login: React.FC = () => {
