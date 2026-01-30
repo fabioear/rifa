@@ -11,6 +11,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./imagem:/app/imagem
     restart: unless-stopped
 
   frontend_rifas:
@@ -20,8 +22,6 @@ services:
       - "8801:80"
     env_file:
       - .env
-    environment:
-      - VITE_API_URL=http://localhost:8800/api/v1
     depends_on:
       - backend_rifas
     restart: unless-stopped
