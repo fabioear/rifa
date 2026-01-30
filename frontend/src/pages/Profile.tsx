@@ -204,7 +204,7 @@ const Profile: React.FC = () => {
                                     <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                                         {avatarUrl ? (
                                             <img 
-                                                src={`${avatarUrl.startsWith('http') ? avatarUrl : (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/api\/v1$/, '') + (avatarUrl.startsWith('/') ? '' : '/') + avatarUrl}`}
+                                                src={`${avatarUrl.startsWith('http') ? avatarUrl : (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/v1\/?$/, '') : '') + (avatarUrl.startsWith('/') ? '' : '/') + avatarUrl}`}
                                                 alt="Avatar" 
                                                 className="h-full w-full object-cover"
                                                 onError={(e) => {

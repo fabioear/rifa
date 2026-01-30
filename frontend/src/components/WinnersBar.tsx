@@ -17,7 +17,7 @@ const getInitials = (name: string) => {
 };
 
 const WinnerItem = ({ winner }: { winner: Winner }) => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl = import.meta.env.VITE_API_URL || '';
     // Remove /api/v1 suffix if present for static file serving base URL
     const cleanApiUrl = apiUrl.replace(/\/api\/v1\/?$/, '');
     

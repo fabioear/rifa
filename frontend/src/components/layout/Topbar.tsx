@@ -16,7 +16,7 @@ const Topbar: React.FC<TopbarProps> = ({ onToggleMenu }) => {
         if (!user?.avatar_url) return null;
         if (user.avatar_url.startsWith('http')) return user.avatar_url;
         
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const cleanApiUrl = apiUrl.replace(/\/api\/v1\/?$/, '');
         const prefix = cleanApiUrl.endsWith('/') ? cleanApiUrl.slice(0, -1) : cleanApiUrl;
         const path = user.avatar_url.startsWith('/') ? user.avatar_url : `/${user.avatar_url}`;

@@ -206,8 +206,9 @@ const AdminApuracao: React.FC = () => {
     setMessage(null);
     setError(null);
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
       await axios.post(
-        `http://localhost:8000/api/v1/admin/rifas/${rifaSelecionada}/apurar`,
+        `${apiUrl}/admin/rifas/${rifaSelecionada}/apurar`,
         {},
         { headers }
       );
