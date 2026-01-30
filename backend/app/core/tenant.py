@@ -44,3 +44,12 @@ def get_tenant_by_host(request: Request, db: Session = Depends(get_db)) -> Tenan
         raise HTTPException(status_code=404, detail=f"Tenant not found for domain {host}")
         
     return tenant
+
+def get_tenant_by_host_or_default(db: Session = Depends(get_db)) -> Tenant:
+    # This function is used for internal tasks or webhooks where we might default to the main tenant
+    # For now, hardcode the main tenant for the bot
+    tenant = db.query(Tenant).filter(Tenant.domain == "imperiodasrifas.app.br").first()
+    if not tenant:
+        # Fallback to first tenant
+        tenant = db.query(Tenant).first()
+    return tenant
