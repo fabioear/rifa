@@ -28,6 +28,7 @@ const Profile: React.FC = () => {
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     
     // Password Change State
     const [currentPassword, setCurrentPassword] = useState('');
@@ -56,6 +57,7 @@ const Profile: React.FC = () => {
                 setEmail(userData.email || '');
                 setPhone(formatPhoneNumber(userData.phone || ''));
                 setWhatsappEnabled(userData.whatsapp_opt_in ?? false);
+                setAvatarUrl(userData.avatar_url || null);
             } catch (err) {
                 console.error("Erro ao carregar perfil:", err);
                 // Fallback to context user if API fails?
@@ -121,6 +123,39 @@ const Profile: React.FC = () => {
         // axios.patch('/api/v1/users/me/preferences', { theme: mode === 'dark' ? 'light' : 'dark' }).catch(console.error);
     };
 
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        
+        const file = e.target.files[0];
+        // Client-side validation (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            setMessage({ type: 'error', text: 'A imagem deve ter no máximo 5MB.' });
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+            const token = localStorage.getItem('access_token');
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            
+            const response = await axios.post(`${apiUrl}/users/me/avatar`, formData, {
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            
+            // Cache busting with timestamp
+            setAvatarUrl(`${response.data.avatar_url}?t=${new Date().getTime()}`);
+            setMessage({ type: 'success', text: 'Foto de perfil atualizada!' });
+        } catch (err: any) {
+            console.error("Erro ao enviar foto:", err);
+            setMessage({ type: 'error', text: mapApiError(err) || 'Erro ao enviar foto.' });
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
             <div className="md:flex md:items-center md:justify-between mb-8">
@@ -164,6 +199,49 @@ const Profile: React.FC = () => {
                 <div className="p-6">
                     {activeTab === 'profile' && (
                         <form onSubmit={handleSaveProfile}>
+                            <div className="flex flex-col items-center mb-6">
+                                <div className="relative group">
+                                    <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                                        {avatarUrl ? (
+                                            <img 
+                                                src={`${avatarUrl.startsWith('http') ? avatarUrl : (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/api\/v1$/, '') + (avatarUrl.startsWith('/') ? '' : '/') + avatarUrl}`}
+                                                alt="Avatar" 
+                                                className="h-full w-full object-cover"
+                                                onError={(e) => {
+                                                    // Fallback to default SVG if image fails to load
+                                                    // Avoid using external placeholder to prevent loops/network issues
+                                                    setAvatarUrl(null); 
+                                                }}
+                                            />
+                                        ) : (
+                                            <svg className="h-20 w-20 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <label 
+                                        htmlFor="avatar-upload" 
+                                        className="absolute bottom-0 right-0 bg-indigo-600 rounded-full p-2 cursor-pointer shadow-lg hover:bg-indigo-700 transition-colors"
+                                        title="Alterar foto"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </label>
+                                    <input 
+                                        id="avatar-upload" 
+                                        type="file" 
+                                        accept="image/jpeg,image/png" 
+                                        className="hidden" 
+                                        onChange={handleAvatarUpload}
+                                    />
+                                </div>
+                                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                    Clique na câmera para alterar a foto
+                                </p>
+                            </div>
+
                             <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                                 <div className="sm:col-span-3">
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -322,7 +400,7 @@ const Profile: React.FC = () => {
                                     <span className="sr-only">Toggle Theme</span>
                                     <span
                                         aria-hidden="true"
-                                        className={`${mode === 'dark' ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 flex items-center justify-center`}
+                                        className={`${mode === 'dark' ? 'translate-x-5' : 'translate-x-0'} pointer-events-none h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 flex items-center justify-center`}
                                     >
                                         {mode === 'dark' ? '🌙' : '☀️'}
                                     </span>

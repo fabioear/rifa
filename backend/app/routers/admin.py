@@ -112,6 +112,28 @@ def update_user(
     db.refresh(user)
     return user
 
+@router.delete("/users/{user_id}", status_code=204)
+def delete_user(
+    user_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+    current_tenant: Tenant = Depends(get_tenant_by_host)
+):
+    """
+    Delete a user.
+    """
+    user = db.query(User).filter(
+        User.id == user_id,
+        User.tenant_id == current_tenant.id
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    db.delete(user)
+    db.commit()
+    return None
+
 @router.get("/users", response_model=List[UserResponse])
 def get_users(
     skip: int = 0,

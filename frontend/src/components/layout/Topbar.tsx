@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
@@ -10,6 +10,22 @@ interface TopbarProps {
 const Topbar: React.FC<TopbarProps> = ({ onToggleMenu }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [imgError, setImgError] = useState(false);
+
+    const getImageUrl = () => {
+        if (!user?.avatar_url) return null;
+        if (user.avatar_url.startsWith('http')) return user.avatar_url;
+        
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const cleanApiUrl = apiUrl.replace(/\/api\/v1\/?$/, '');
+        const prefix = cleanApiUrl.endsWith('/') ? cleanApiUrl.slice(0, -1) : cleanApiUrl;
+        const path = user.avatar_url.startsWith('/') ? user.avatar_url : `/${user.avatar_url}`;
+        
+        // Add timestamp to prevent caching if needed, though simpler without for now unless update is frequent
+        return `${prefix}${path}`;
+    };
+
+    const imageUrl = getImageUrl();
 
     return (
         <div className="h-[60px] bg-white dark:bg-slate-800 text-slate-900 dark:text-white flex justify-between items-center px-5 fixed top-0 left-0 right-0 z-[1000] border-b border-slate-200 dark:border-slate-700 transition-colors duration-200">
@@ -42,9 +58,21 @@ const Topbar: React.FC<TopbarProps> = ({ onToggleMenu }) => {
                         
                         <button 
                             onClick={() => navigate('/perfil')}
-                            className="px-4 py-1.5 bg-transparent text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            className="pl-2 pr-4 py-1.5 bg-transparent text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
                         >
-                            <span>👤</span> Perfil
+                            <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center border border-slate-300 dark:border-slate-600">
+                                {imageUrl && !imgError ? (
+                                    <img 
+                                        src={imageUrl} 
+                                        alt="Perfil" 
+                                        className="h-full w-full object-cover"
+                                        onError={() => setImgError(true)}
+                                    />
+                                ) : (
+                                    <span className="text-lg">👤</span>
+                                )}
+                            </div>
+                            <span>Perfil</span>
                         </button>
 
                         <button 

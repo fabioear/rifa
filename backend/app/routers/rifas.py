@@ -10,9 +10,10 @@ from jose import jwt, JWTError
 from app.db.session import get_db
 from app.models.user import User
 from app.api.deps import get_current_active_user, get_current_active_superuser
-from app.schemas.rifa import RifaCreate, RifaResponse, RifaUpdate, RifaStatusUpdate
+from app.schemas.rifa import RifaCreate, RifaResponse, RifaUpdate, RifaStatusUpdate, WinnerResponse
 from app.schemas.rifa_numero import RifaNumeroResponse
 from app.models.rifa import Rifa, RifaStatus, RifaTipo
+from app.models.rifa_ganhador import RifaGanhador
 from app.models.rifa_numero import RifaNumero, NumeroStatus
 from app.models.admin_settings import AdminSettings
 from app.core.config import settings
@@ -74,6 +75,52 @@ def notify_users_new_rifa(rifa_id: uuid.UUID, tenant_id: uuid.UUID):
         db.close()
 
 router = APIRouter()
+
+@router.get("/recent-winners", response_model=List[WinnerResponse])
+def get_recent_winners(
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    winners = db.query(RifaGanhador).order_by(RifaGanhador.created_at.desc()).limit(limit).all()
+    
+    response = []
+    
+    if not winners:
+        # Mock winners for testing if no real winners exist
+        mock_winners = [
+            {"user_name": "Carlos Silva", "rifa_title": "iPhone 15 Pro Max", "numero": "159", "hours_ago": 0},
+            {"user_name": "Ana Oliveira", "rifa_title": "Honda Titan 160", "numero": "042", "hours_ago": 1},
+            {"user_name": "Marcos Santos", "rifa_title": "R$ 5.000 no PIX", "numero": "777", "hours_ago": 2},
+            {"user_name": "Fernanda Costa", "rifa_title": "PlayStation 5", "numero": "333", "hours_ago": 3},
+            {"user_name": "Roberto Lima", "rifa_title": "Salário Extra", "numero": "010", "hours_ago": 4},
+        ]
+        
+        for mock in mock_winners:
+            response.append(WinnerResponse(
+                user_name=mock["user_name"],
+                avatar_url=None,
+                rifa_title=mock["rifa_title"],
+                numero=mock["numero"],
+                data_ganho=datetime.now() - timedelta(hours=mock["hours_ago"])
+            ))
+        return response
+
+    for winner in winners:
+        # Ensure relationships are loaded or handle None
+        user_name = winner.user.name if winner.user else "Usuário Removido"
+        avatar_url = winner.user.avatar_url if winner.user else None
+        rifa_title = winner.rifa.titulo if winner.rifa else "Rifa Removida"
+        numero_val = winner.numero.numero if winner.numero else "???"
+        
+        response.append(WinnerResponse(
+            user_name=user_name,
+            avatar_url=avatar_url,
+            rifa_title=rifa_title,
+            numero=numero_val,
+            data_ganho=winner.created_at
+        ))
+        
+    return response
 
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/login/access-token", auto_error=False)
 

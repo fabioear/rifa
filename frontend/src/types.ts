@@ -6,6 +6,7 @@ export interface User {
     phone?: string;
     whatsapp_opt_in?: boolean;
     created_at?: string;
+    avatar_url?: string;
 }
 
 export enum RifaStatus {
@@ -38,6 +39,7 @@ export interface Rifa {
     titulo: string;
     descricao?: string;
     preco_numero: number;
+    valor_premio?: number;
     tipo_rifa: RifaTipo;
     local_sorteio: string;
     data_sorteio: string;

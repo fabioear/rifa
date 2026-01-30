@@ -72,6 +72,40 @@ class WhatsAppService:
                 pass
             return None
 
+    def send_text_message(self, to: str, message_body: str):
+        """
+        Sends a free-form text message via Twilio (WhatsApp).
+        """
+        if not self.twilio_enabled or not self.client:
+            logger.warning(f"Twilio disabled. Cannot send text to {to}")
+            return None
+
+        try:
+            # Format number
+            if not to.startswith("whatsapp:"):
+                clean_number = "".join(filter(str.isdigit, to))
+                if len(clean_number) in [10, 11]:
+                    clean_number = f"55{clean_number}"
+                if not to.startswith("+"):
+                     to = f"+{clean_number}"
+                to = f"whatsapp:{to}"
+            
+            from_number = settings.TWILIO_FROM_NUMBER
+            if not from_number.startswith("whatsapp:"):
+                from_number = f"whatsapp:{from_number}"
+
+            message = self.client.messages.create(
+                from_=from_number,
+                body=message_body,
+                to=to
+            )
+            logger.info(f"WhatsApp text sent to {to}: {message.sid}")
+            return message.sid
+            
+        except Exception as e:
+            logger.error(f"Error sending WhatsApp text to {to}: {e}")
+            return None
+
     def _send_twilio_message(self, to: str, content_sid: str, content_variables: dict):
         if not self.twilio_enabled or not self.client:
             logger.info(f"Twilio disabled or not initialized. Skipping message to {to}")

@@ -42,6 +42,7 @@ class Rifa(Base):
     titulo = Column(String, nullable=False)
     descricao = Column(Text, nullable=True)
     preco_numero = Column(Numeric(10, 2), nullable=False)
+    valor_premio = Column(Numeric(10, 2), nullable=True)
     
     tipo_rifa = Column(Enum(RifaTipo), nullable=False)
     

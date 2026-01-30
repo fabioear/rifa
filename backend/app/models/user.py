@@ -20,6 +20,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     phone = Column(String, nullable=True)
     whatsapp_opt_in = Column(Boolean, default=False)
+    avatar_url = Column(String, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'))
     
     tenant = relationship("Tenant", back_populates="users")

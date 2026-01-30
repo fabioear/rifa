@@ -9,6 +9,7 @@ class RifaBase(BaseModel):
     titulo: str
     descricao: Optional[str] = None
     preco_numero: float
+    valor_premio: Optional[float] = None
     tipo_rifa: RifaTipo
     data_sorteio: datetime
     hora_encerramento: Optional[datetime] = None
@@ -24,6 +25,7 @@ class RifaUpdate(BaseModel):
     titulo: Optional[str] = None
     descricao: Optional[str] = None
     preco_numero: Optional[float] = None
+    valor_premio: Optional[float] = None
     tipo_rifa: Optional[RifaTipo] = None
     data_sorteio: Optional[datetime] = None
     hora_encerramento: Optional[datetime] = None
@@ -40,6 +42,17 @@ class RifaResponse(RifaBase):
     owner_id: UUID
     created_at: datetime
 
+    class Config:
+        from_attributes = True
+
+
+class WinnerResponse(BaseModel):
+    user_name: Optional[str]
+    avatar_url: Optional[str]
+    rifa_title: str
+    numero: str
+    data_ganho: datetime
+    
     class Config:
         from_attributes = True
 

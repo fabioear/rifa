@@ -6,8 +6,10 @@ import { useTheme } from '../hooks/useTheme';
 interface User {
     id: string;
     role: 'admin' | 'player';
-    email?: string; // Optional, might not be in token directly unless we put it there
-    sub?: string; // Subject (ID)
+    email?: string;
+    sub?: string;
+    name?: string;
+    avatar_url?: string | null;
 }
 
 interface AuthContextType {
@@ -18,6 +20,7 @@ interface AuthContextType {
     logout: () => void;
     error: string | null;
     isAuthenticated: boolean;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,8 +38,8 @@ function parseJwt(token: string): User | null {
         // Map JWT claims to User object
         return {
             id: decoded.sub || '',
-            role: decoded.role || 'player', // Default to player if not found
-            email: decoded.email // If we add email to token later
+            role: decoded.role || 'player',
+            email: decoded.email
         };
     } catch (e) {
         return null;
@@ -45,13 +48,38 @@ function parseJwt(token: string): User | null {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
-    // Initialize user synchronously to avoid flicker/missing navbar
+    // Initialize user synchronously from token, then we'll fetch details
     const [user, setUser] = useState<User | null>(() => {
         const t = localStorage.getItem('access_token');
         return t ? parseJwt(t) : null;
     });
     const [error, setError] = useState<string | null>(null);
     const { setTheme } = useTheme();
+
+    // Function to fetch full user details
+    const refreshUser = async () => {
+        const currentToken = localStorage.getItem('access_token');
+        if (!currentToken) return;
+
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            const response = await axios.get(`${apiUrl}/users/me`, {
+                headers: { Authorization: `Bearer ${currentToken}` }
+            });
+            
+            if (response.data) {
+                setUser(prev => ({
+                    ...prev,
+                    ...response.data, // Merge API data (including avatar_url)
+                    id: prev?.id || response.data.id,
+                    role: prev?.role || response.data.role
+                }));
+            }
+        } catch (err) {
+            console.error("Failed to refresh user data", err);
+            // Don't logout here, just keep using token data if API fails temporarily
+        }
+    };
 
     // Intercept 401 responses to auto-logout
     useEffect(() => {
@@ -76,6 +104,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const userData = parseJwt(token);
             if (userData) {
                 setUser(userData);
+                // Fetch full details (avatar, name, etc.)
+                refreshUser();
             } else {
                 // Invalid token
                 logout();
@@ -145,7 +175,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ token, user, login, register, logout, error, isAuthenticated: !!token }}>
+        <AuthContext.Provider value={{ token, user, login, register, logout, error, isAuthenticated: !!user, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

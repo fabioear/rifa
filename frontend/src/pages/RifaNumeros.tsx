@@ -145,9 +145,19 @@ const RifaNumeros: React.FC = () => {
     return (
         <div className="p-5 max-w-7xl mx-auto">
             <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{rifa.titulo} - Escolha seus números</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Tipo: {rifa.tipo_rifa} | Sorteio: {new Date(rifa.data_sorteio).toLocaleString()}
-            </p>
+            <div className="flex flex-col sm:flex-row gap-4 mb-4 text-gray-600 dark:text-gray-400">
+                <span>Tipo: {rifa.tipo_rifa}</span>
+                <span className="hidden sm:inline">|</span>
+                <span>Sorteio: {new Date(rifa.data_sorteio).toLocaleString()}</span>
+                {rifa.valor_premio && (
+                    <>
+                        <span className="hidden sm:inline">|</span>
+                        <span className="font-semibold text-green-600 dark:text-green-400">
+                            Prêmio: R$ {rifa.valor_premio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                    </>
+                )}
+            </div>
             
             {(error || successMessage) && (
                 <div className={`mb-4 p-4 rounded-md ${

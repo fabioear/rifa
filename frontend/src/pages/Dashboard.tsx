@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
         titulo: '',
         descricao: '',
         preco_numero: '',
+        valor_premio: '',
         tipo_rifa: RifaTipo.MILHAR,
         local_sorteio: '',
         data_sorteio: '',
@@ -134,6 +135,7 @@ const Dashboard: React.FC = () => {
             const payload = {
                 ...newRifa,
                 preco_numero: parseFloat(newRifa.preco_numero),
+                valor_premio: newRifa.valor_premio ? parseFloat(newRifa.valor_premio) : null,
                 quantidade_numeros: qtd,
                 // If data_sorteio is provided, ensure it has timezone or is valid ISO
                 data_sorteio: new Date(newRifa.data_sorteio).toISOString(),
@@ -149,6 +151,7 @@ const Dashboard: React.FC = () => {
                 titulo: '', 
                 descricao: '', 
                 preco_numero: '', 
+                valor_premio: '',
                 tipo_rifa: RifaTipo.MILHAR,
                 local_sorteio: '',
                 data_sorteio: '',
@@ -176,6 +179,25 @@ const Dashboard: React.FC = () => {
             console.error(err);
             alert(mapApiError(err));
         }
+    };
+
+    const generateWhatsAppText = (rifa: Rifa) => {
+        const dataSorteio = new Date(rifa.data_sorteio).toLocaleDateString('pt-BR');
+        return `🎰 Nova rifa disponível no Império das Rifas!
+Rifa: ${rifa.titulo}
+Sorteio: ${dataSorteio}
+Tipo: ${rifa.tipo_rifa}
+Participe de forma simples e rápida. Confira os detalhes e jogue pelo site oficial:
+👉 https://imperiodasrifas.app.br/rifa/${rifa.id}`;
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Texto copiado para o WhatsApp!');
+        }, (err) => {
+            console.error('Erro ao copiar: ', err);
+            alert('Erro ao copiar texto.');
+        });
     };
 
     if (loading) return <div className="p-5 text-gray-900 dark:text-gray-100">Carregando...</div>;
@@ -220,6 +242,15 @@ const Dashboard: React.FC = () => {
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor do Prêmio (R$)</label>
+                            <CurrencyInput 
+                                value={newRifa.valor_premio}
+                                onChange={val => setNewRifa({...newRifa, valor_premio: val})}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                            />
                         </div>
 
                         <div>
@@ -310,6 +341,9 @@ const Dashboard: React.FC = () => {
                                 Preço
                             </th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Prêmio
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                 Status
                             </th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -328,6 +362,9 @@ const Dashboard: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     R$ {rifa.preco_numero.toFixed(2)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {rifa.valor_premio ? `R$ ${rifa.valor_premio.toFixed(2)}` : '-'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -355,6 +392,13 @@ const Dashboard: React.FC = () => {
                                             Encerrar
                                         </button>
                                     )}
+                                    <button 
+                                        onClick={() => copyToClipboard(generateWhatsAppText(rifa))}
+                                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                                        title="Copiar texto para WhatsApp"
+                                    >
+                                        Zap
+                                    </button>
                                 </td>
                             </tr>
                         ))}

@@ -3,6 +3,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from './Navbar';
 import Topbar from './Topbar';
+import { WinnersBar } from '../WinnersBar';
 
 const Layout: React.FC = () => {
     const { isAuthenticated, user } = useAuth();
@@ -22,9 +23,12 @@ const Layout: React.FC = () => {
             <Topbar onToggleMenu={() => setMobileMenuOpen(!mobileMenuOpen)} />
             <div className="flex flex-1 pt-[60px]">
                 <Navbar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-                <main className="flex-1 ml-0 md:ml-[200px] p-5 bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-200">
-                    <Outlet />
-                </main>
+                <div className="flex-1 flex flex-col ml-0 md:ml-[200px] transition-all duration-200 min-w-0">
+                    <WinnersBar />
+                    <main className="flex-1 p-5 bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+                        <Outlet />
+                    </main>
+                </div>
             </div>
         </div>
     );

@@ -29,6 +29,7 @@ const App: React.FC = () => {
           <Route index element={<Navigate to="/rifas" replace />} />
           <Route path="rifas" element={<Rifas />} />
           <Route path="rifas/:id" element={<RifaNumeros />} />
+          <Route path="rifa/:id" element={<RifaNumeros />} />
           <Route path="perfil" element={<Profile />} />
           
           {/* Admin Routes */}
