@@ -17,6 +17,12 @@ class Settings:
     TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
     TWILIO_FROM_NUMBER: str = os.getenv("TWILIO_FROM_NUMBER", "whatsapp:+14155238886")
     TWILIO_ENABLED: bool = os.getenv("TWILIO_ENABLED", "False").lower() == "true"
+
+    # PIXUP
+    PIXUP_CLIENT_ID: str = os.getenv("PIXUP_CLIENT_ID", "")
+    PIXUP_CLIENT_SECRET: str = os.getenv("PIXUP_CLIENT_SECRET", "")
+    PIXUP_API_URL: str = os.getenv("PIXUP_API_URL", "https://api.pixup.com.br")
+    PIXUP_WEBHOOK_SECRET: str = os.getenv("PIXUP_WEBHOOK_SECRET", "")  # Para validar webhook se necessário
     
     # Meta / WhatsApp Cloud API
     META_API_URL: str = os.getenv("META_API_URL", "https://graph.facebook.com/v21.0")

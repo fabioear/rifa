@@ -10,3 +10,4 @@ python-dotenv
 email-validator
 apscheduler
 twilio
+httpx

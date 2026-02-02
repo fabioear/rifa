@@ -118,9 +118,9 @@ const AdminApuracao: React.FC = () => {
         `${apiUrl}/rifas/`,
         { headers }
       );
-      const filtradas = res.data.filter(
-        (r) => r.status === RifaStatus.ENCERRADA
-      );
+      const filtradas = res.data
+        .filter((r) => r.status === RifaStatus.ENCERRADA)
+        .sort((a, b) => new Date(b.data_sorteio).getTime() - new Date(a.data_sorteio).getTime());
       setRifasEncerradas(filtradas);
       if (!rifaSelecionada && filtradas.length > 0) {
         setRifaSelecionada(filtradas[0].id);

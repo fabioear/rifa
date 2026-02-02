@@ -93,13 +93,10 @@ const RifaNumeros: React.FC = () => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            // 2. Get Mock Payment Details
+            // 2. Get PIX Payment Details
             const paymentRes = await axios.post(
-                `${apiUrl}/pagamentos/mock`,
-                { 
-                    amount: rifa?.preco_numero || 10.0, 
-                    description: `Reserva Rifa ${rifa?.titulo} - Nº ${numero}` 
-                },
+                `${apiUrl}/pagamentos/pix`,
+                { payment_id: reserveRes.data.payment_id },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -107,7 +104,7 @@ const RifaNumeros: React.FC = () => {
                 numero: numero,
                 payment_id: reserveRes.data.payment_id,
                 expires_at: reserveRes.data.expires_at,
-                qr_code: paymentRes.data.qr_code_base64,
+                qr_code: paymentRes.data.qr_code,
                 qr_code_text: paymentRes.data.pix_code
             });
             
@@ -262,8 +259,20 @@ const RifaNumeros: React.FC = () => {
 
             {/* Payment Modal Overlay */}
             {paymentInfo && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 px-4">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full shadow-xl">
+                <div 
+                    className="fixed inset-0 flex justify-center items-center z-[9999] px-4"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                >
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full shadow-xl relative">
+                        <button
+                            onClick={() => setPaymentInfo(null)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-500 focus:outline-none"
+                        >
+                            <span className="sr-only">Fechar</span>
+                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Pagamento - Número {paymentInfo.numero}</h3>
                         <p className="text-gray-500 dark:text-gray-400 mb-4">Realize o pagamento para confirmar sua reserva.</p>
                         
