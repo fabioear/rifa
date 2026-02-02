@@ -119,10 +119,7 @@ const AdminApuracao: React.FC = () => {
         { headers }
       );
       const filtradas = res.data.filter(
-        (r) =>
-          r.status === RifaStatus.ATIVA ||
-          r.status === RifaStatus.ENCERRADA ||
-          r.status === RifaStatus.APURADA
+        (r) => r.status === RifaStatus.ENCERRADA
       );
       setRifasEncerradas(filtradas);
       if (!rifaSelecionada && filtradas.length > 0) {

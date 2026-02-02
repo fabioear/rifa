@@ -106,7 +106,7 @@ def update_user(
     if user_in.whatsapp_opt_in is not None:
         user.whatsapp_opt_in = user_in.whatsapp_opt_in
     if user_in.password:
-        user.hashed_password = get_password_hash(user_in.password)
+        user.password_hash = get_password_hash(user_in.password)
         
     db.commit()
     db.refresh(user)

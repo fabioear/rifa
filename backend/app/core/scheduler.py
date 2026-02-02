@@ -144,7 +144,10 @@ def close_expired_rifas():
         now = datetime.now(timezone.utc)
         expired_rifas = db.query(Rifa).filter(
             Rifa.status == RifaStatus.ATIVA,
-            Rifa.data_sorteio <= now
+            or_(
+                and_(Rifa.hora_encerramento.isnot(None), Rifa.hora_encerramento <= now),
+                and_(Rifa.hora_encerramento.is_(None), Rifa.data_sorteio <= now)
+            )
         ).all()
         
         if expired_rifas:

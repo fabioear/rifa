@@ -146,7 +146,7 @@ class WhatsAppService:
         except Exception as e:
             logger.error(f"Unexpected error sending WhatsApp to {to}: {e}")
 
-    def send_new_raffle_notification(self, user_phone: str, rifa_nome: str, data_sorteio: str, tipo: str):
+    def send_new_raffle_notification(self, user_phone: str, rifa_nome: str, data_sorteio: str, tipo: str, rifa_id: str):
         """
         Send notification about new raffle.
         """
@@ -155,7 +155,7 @@ class WhatsAppService:
              return self._send_meta_message(
                  to=user_phone,
                  template_name=settings.META_TEMPLATE_NEW_RIFA,
-                 variables=[rifa_nome, str(data_sorteio), tipo]
+                 variables=[rifa_nome, str(data_sorteio), tipo, rifa_id]
              )
         
         # 2. Fallback to Twilio
@@ -163,7 +163,8 @@ class WhatsAppService:
             variables = {
                 "1": rifa_nome,
                 "2": str(data_sorteio),
-                "3": tipo
+                "3": tipo,
+                "4": rifa_id
             }
             return self._send_twilio_message(
                 to=user_phone,

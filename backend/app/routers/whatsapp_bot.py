@@ -38,14 +38,18 @@ MSG_MODALIDADE = """Escolha a modalidade de jogo:
 1️⃣ Grupo
 2️⃣ Dezena
 3️⃣ Centena
-4️⃣ Milhar"""
+4️⃣ Milhar
+
+0️⃣ Voltar"""
 
 MSG_DIGITE_NUMERO = """Digite o número desejado.
 Exemplo:
 Grupo → 05
 Dezena → 23
 Centena → 123
-Milhar → 4321"""
+Milhar → 4321
+
+0️⃣ Voltar"""
 
 MSG_CONFIRMACAO = """Confira os dados da sua rifa:
 
@@ -63,12 +67,16 @@ MSG_PIX = """💳 *Pagamento via Pix*
 
 Valor: R$ {valor}
 
-Escaneie o QR Code abaixo ou copie o código Pix."""
+Escaneie o QR Code abaixo ou copie o código Pix.
+
+0️⃣ Voltar ao Menu"""
 
 MSG_SUPORTE = """🆘 *Suporte*
 
 Digite sua dúvida ou aguarde que um atendente irá responder.
-(Link para WhatsApp do suporte ou aguarde atendimento)"""
+(Link para WhatsApp do suporte ou aguarde atendimento)
+
+0️⃣ Voltar ao Menu"""
 
 MSG_SEM_RIFAS = "🚫 Não há rifas ativas no momento para esta modalidade."
 MSG_ERRO_GENERICO = "Desculpe, não entendi. Digite 0 para voltar ao Menu."
@@ -120,7 +128,7 @@ def create_user_from_whatsapp(db: Session, phone: str, name: str):
 
     new_user = User(
         email=email,
-        hashed_password=get_password_hash(pwd),
+        password_hash=get_password_hash(pwd),
         name=name,
         phone=phone,
         role="player",

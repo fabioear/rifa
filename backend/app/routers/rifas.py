@@ -54,7 +54,8 @@ def notify_users_new_rifa(rifa_id: uuid.UUID, tenant_id: uuid.UUID):
                         user_phone=user.phone,
                         rifa_nome=rifa.titulo,
                         data_sorteio=rifa.data_sorteio,
-                        tipo=rifa.tipo_rifa.value if hasattr(rifa.tipo_rifa, 'value') else str(rifa.tipo_rifa)
+                        tipo=rifa.tipo_rifa.value if hasattr(rifa.tipo_rifa, 'value') else str(rifa.tipo_rifa),
+                        rifa_id=str(rifa.id)
                     )
                     AuditLogger.log(
                         db=db,
