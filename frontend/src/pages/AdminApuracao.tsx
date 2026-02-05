@@ -119,9 +119,10 @@ const AdminApuracao: React.FC = () => {
         { headers }
       );
       const filtradas = res.data
-        .filter((r) => r.status === RifaStatus.ENCERRADA)
-        .sort((a, b) => new Date(b.data_sorteio).getTime() - new Date(a.data_sorteio).getTime());
-      setRifasEncerradas(filtradas);
+              .filter((r) => r.status === RifaStatus.ENCERRADA)
+              .sort((a, b) => new Date(b.data_sorteio).getTime() - new Date(a.data_sorteio).getTime())
+              .slice(0, 20);
+            setRifasEncerradas(filtradas);
       if (!rifaSelecionada && filtradas.length > 0) {
         setRifaSelecionada(filtradas[0].id);
       }

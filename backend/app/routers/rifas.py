@@ -21,16 +21,22 @@ from app.core.audit import AuditLogger
 from services.whatsapp_service import whatsapp_service
 from app.models.audit_finance import AuditLog
 from app.db.session import SessionLocal
+import logging
+
+logger = logging.getLogger(__name__)
 
 def notify_users_new_rifa(rifa_id: uuid.UUID, tenant_id: uuid.UUID):
+    logger.info(f"Starting new raffle notification for Rifa {rifa_id} (Tenant {tenant_id})")
     db = SessionLocal()
     try:
         rifa = db.query(Rifa).get(rifa_id)
         if not rifa:
+            logger.error(f"Rifa {rifa_id} not found during notification")
             return
         
         # Only notify if ATIVA
         if rifa.status != RifaStatus.ATIVA:
+            logger.info(f"Rifa {rifa_id} is not ATIVA (Status: {rifa.status}). Skipping notification.")
             return
 
         users = db.query(User).filter(
@@ -39,6 +45,9 @@ def notify_users_new_rifa(rifa_id: uuid.UUID, tenant_id: uuid.UUID):
             User.phone.isnot(None)
         ).all()
         
+        logger.info(f"Found {len(users)} users with WhatsApp Opt-In")
+        
+        count_sent = 0
         for user in users:
                 try:
                     already = db.query(AuditLog).filter(
@@ -50,27 +59,33 @@ def notify_users_new_rifa(rifa_id: uuid.UUID, tenant_id: uuid.UUID):
                     ).first()
                     if already:
                         continue
-                    whatsapp_service.send_new_raffle_notification(
+                    
+                    sid = whatsapp_service.send_new_raffle_notification(
                         user_phone=user.phone,
                         rifa_nome=rifa.titulo,
                         data_sorteio=rifa.data_sorteio,
                         tipo=rifa.tipo_rifa.value if hasattr(rifa.tipo_rifa, 'value') else str(rifa.tipo_rifa),
                         rifa_id=str(rifa.id)
                     )
-                    AuditLogger.log(
-                        db=db,
-                        action="WHATSAPP_NOTIFIED_RIFA",
-                        entity_type="user",
-                        entity_id=str(user.id),
-                        actor_id="system",
-                        actor_role="system",
-                        old_value=None,
-                        new_value={"rifa_id": str(rifa.id), "titulo": rifa.titulo},
-                        tenant_id=tenant_id
-                    )
-                    db.commit()
+                    
+                    if sid:
+                        count_sent += 1
+                        AuditLogger.log(
+                            db=db,
+                            action="WHATSAPP_NOTIFIED_RIFA",
+                            entity_type="user",
+                            entity_id=str(user.id),
+                            actor_id="system",
+                            actor_role="system",
+                            old_value=None,
+                            new_value={"rifa_id": str(rifa.id), "titulo": rifa.titulo},
+                            tenant_id=tenant_id
+                        )
+                        db.commit()
                 except Exception as e:
-                    print(f"Error notifying user {user.id}: {e}")
+                    logger.error(f"Error notifying user {user.id}: {e}")
+        
+        logger.info(f"Finished notifications. Sent to {count_sent} users.")
                 
     finally:
         db.close()

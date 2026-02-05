@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Configuração Hardcoded (Simples)
 MAX_SIMULTANEOUS_RESERVATIONS = 5
-COOLDOWN_SECONDS = 10
+COOLDOWN_SECONDS = 0
 RATE_LIMIT_PER_MINUTE = 10
 
 def check_antifraud(

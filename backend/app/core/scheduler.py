@@ -141,7 +141,8 @@ def close_expired_rifas():
     """
     db = SessionLocal()
     try:
-        now = datetime.now(timezone.utc)
+        # Adjust for Brazil time (UTC-3) as DB likely stores local time
+        now = datetime.now(timezone.utc) - timedelta(hours=3)
         expired_rifas = db.query(Rifa).filter(
             Rifa.status == RifaStatus.ATIVA,
             or_(

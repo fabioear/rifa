@@ -204,8 +204,8 @@ const RifaNumeros: React.FC = () => {
                              borderClass = 'border-red-600';
                         } else if (isReservado) {
                             if (isMyNumber) {
-                                bgClass = 'bg-yellow-400 dark:bg-yellow-500';
-                                textClass = 'text-gray-900';
+                                bgClass = 'bg-red-500 dark:bg-red-600';
+                                textClass = 'text-white';
                                 label += ' (Pagar)';
                             } else {
                                 bgClass = 'bg-gray-500 dark:bg-gray-600';
