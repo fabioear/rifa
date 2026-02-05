@@ -84,6 +84,19 @@ const RifaNumeros: React.FC = () => {
 
     const handleReserve = async (numero: string) => {
         setError(null);
+        
+        // Optimistic UI Update: Mark as reserved immediately
+        setNumeros(prev => prev.map(n => {
+            if (n.numero === numero) {
+                return { 
+                    ...n, 
+                    status: NumeroStatus.RESERVADO, 
+                    user_id: user?.id || undefined
+                };
+            }
+            return n;
+        }));
+
         try {
             const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
             // 1. Reserve Number
@@ -108,10 +121,21 @@ const RifaNumeros: React.FC = () => {
                 qr_code_text: paymentRes.data.pix_code
             });
             
-            // Refresh list
-            fetchRifaAndNumeros();
+            // Remove full refresh to prevent race conditions with multiple clicks
+            // fetchRifaAndNumeros();
             
         } catch (err: any) {
+            // Revert ONLY this number on error
+            setNumeros(prev => prev.map(n => {
+                if (n.numero === numero) {
+                     return { 
+                         ...n, 
+                         status: NumeroStatus.LIVRE, 
+                         user_id: undefined
+                     };
+                }
+                return n;
+            }));
             setError(mapApiError(err));
         }
     };
