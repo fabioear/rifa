@@ -7,7 +7,7 @@ from app.models.rifa import Rifa, RifaStatus
 from app.db.session import SessionLocal
 from app.models.audit_finance import AuditLog
 from app.models.antifraud import BlockedEntity, BlockedEntityType
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_
 import logging
 
 logger = logging.getLogger(__name__)
