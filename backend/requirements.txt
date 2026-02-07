@@ -11,3 +11,4 @@ email-validator
 apscheduler
 twilio
 httpx
+qrcode[pil]
