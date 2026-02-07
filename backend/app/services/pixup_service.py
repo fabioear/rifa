@@ -39,7 +39,7 @@ class PixupService:
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{self.base_url}/oauth/token",
+                    f"{self.base_url}/v2/oauth/token",
                     headers=headers,
                     data=data,
                     timeout=30.0
@@ -47,6 +47,7 @@ class PixupService:
                 
                 response.raise_for_status()
                 token_data = response.json()
+                logger.info(f"Token Response: {token_data}")
                 
                 self.token = token_data["access_token"]
                 # Define expiração (geralmente 3600s, subtraímos 60s para segurança)
@@ -80,70 +81,39 @@ class PixupService:
             
             headers = {
                 "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "accept": "application/json"
             }
             
-            # Formata o valor para centavos (inteiro) se a API exigir, ou float.
-            # A documentação da Pixup v2 geralmente usa float ou string decimal.
-            # Vamos assumir string com 2 casas decimais para garantir.
-            amount_formatted = f"{amount:.2f}"
-            
-            payload = {
-                "calendario": {
-                    "expiracao": 3600 # 1 hora
-                },
-                "devedor": {
-                    "cpf": ''.join(filter(str.isdigit, payer_cpf)),
-                    "nome": payer_name
-                },
-                "valor": {
-                    "original": amount_formatted
-                },
-                "chave": settings.PIXUP_CLIENT_ID, # Algumas APIs pedem a chave Pix aqui
-                "solicitacaoPagador": f"Pagamento Rifa {reference_id}",
-                "infoAdicionais": [
-                    {
-                        "nome": "Referência",
-                        "valor": reference_id
-                    }
-                ]
-            }
-            
-            # NOTA: A estrutura exata do payload depende da documentação específica da v2.
-            # Ajustando para o padrão comum de APIs Pix (semelhante ao Banco Central/EFI)
-            # Se a Pixup tiver um endpoint simplificado, ajustaremos.
-            # Baseado na descrição do usuário: "generation of QR Code, pagamentos..."
-            
-            # Vamos usar um payload mais genérico que costuma funcionar em gateways
+            # Ajustando payload conforme exemplo do usuário (debtor em vez de payer)
             payload_gateway = {
                 "external_id": reference_id,
-                "amount": amount, # ou int(amount * 100)
-                "payer": {
+                "amount": amount,
+                "debtor": {
                     "name": payer_name,
                     "document": ''.join(filter(str.isdigit, payer_cpf)),
                     "email": payer_email or ""
                 },
-                "postback_url": f"https://api.imperiodasrifas.app.br/api/v1/payments/webhook/pixup" # URL hipotética
+                "postback_url": "https://api.imperiodasrifas.app.br/api/v1/payments/webhook/pixup"
             }
-
-            # Como não tenho a doc exata da estrutura do JSON da Pixup v2 aqui, 
-            # vou assumir uma estrutura padrão e ajustar se falhar nos testes ou se o usuário corrigir.
-            # Mas o usuário mandou um texto "Seguindo a documentação...". Deixe-me ver se recupero algo específico dali.
-            # O texto do usuário não tinha o payload exato.
-            
-            # Vou implementar o request genérico para /v2/cobrancas
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{self.base_url}/v2/cobrancas",
+                    f"{self.base_url}/v2/pix/qrcode",
                     headers=headers,
                     json=payload_gateway,
                     timeout=30.0
                 )
                 
+                if response.status_code >= 400:
+                    logger.error(f"Erro Pixup Body: {response.text}")
+                    
                 response.raise_for_status()
                 return response.json()
                 
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Erro HTTP Pixup: {e.response.text}")
+            raise
         except Exception as e:
             logger.error(f"Erro ao criar cobrança Pixup: {str(e)}")
             # Mock de resposta para desenvolvimento se falhar (remover em prod)

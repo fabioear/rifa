@@ -1,20 +1,117 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import logging
+import httpx
+import uuid
 from datetime import datetime
 
 from app.db.session import get_db
 from app.models.rifa_numero import RifaNumero, NumeroStatus
+from app.models.rifa import Rifa
 from app.models.user import User
 from app.services.pixup_service import pixup_service
+from app.api.deps import get_current_active_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 class PaymentRequest(BaseModel):
     payment_id: str
+
+class CheckoutRequest(BaseModel):
+    rifa_id: str
+    numeros: List[str]
+
+@router.post("/checkout")
+async def create_checkout_payment(
+    request: CheckoutRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    # 1. Validate Rifa
+    rifa = db.query(Rifa).filter(Rifa.id == request.rifa_id).first()
+    if not rifa:
+        raise HTTPException(status_code=404, detail="Rifa não encontrada")
+        
+    if rifa.status != "ATIVA": # Assuming 'ATIVA' string or Enum. Using string for safety if Enum not imported
+         raise HTTPException(status_code=400, detail="Rifa não está ativa")
+
+    # 2. Validate Numbers Ownership and Status
+    # We look for numbers that are RESERVED by this user
+    numeros_db = db.query(RifaNumero).filter(
+        RifaNumero.rifa_id == request.rifa_id,
+        RifaNumero.numero.in_(request.numeros),
+        RifaNumero.user_id == current_user.id,
+        RifaNumero.status == NumeroStatus.RESERVADO
+    ).all()
+    
+    # Check if we found all requested numbers
+    found_numeros_set = {n.numero for n in numeros_db}
+    missing = [n for n in request.numeros if n not in found_numeros_set]
+    
+    if missing:
+        # Some numbers might have expired or not been reserved
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Os seguintes números não estão reservados para você (ou expiraram): {', '.join(missing)}"
+        )
+        
+    if not numeros_db:
+        raise HTTPException(status_code=400, detail="Nenhum número válido para pagamento.")
+
+    # 3. Calculate Total Amount
+    total_amount = float(rifa.preco_numero) * len(numeros_db)
+    
+    # 4. Generate Unified Payment ID
+    master_payment_id = str(uuid.uuid4())
+    
+    # 5. Update all numbers to use this Payment ID
+    for num in numeros_db:
+        num.payment_id = master_payment_id
+        # Refresh expiry time? Maybe reset the 15min timer? 
+        # Let's keep original or refresh. Refreshing is nicer.
+        # num.reserved_until = datetime.utcnow() + timedelta(minutes=15) 
+    
+    db.commit() # Save the payment_id update before calling API (to ensure webhook finds it)
+    
+    # 6. Call Pixup
+    try:
+        payer_cpf = "00000000000" # TODO: Get from User profile
+        
+        result = await pixup_service.create_payment(
+            reference_id=master_payment_id,
+            amount=total_amount,
+            payer_name=current_user.name or "Cliente",
+            payer_cpf=payer_cpf,
+            payer_email=current_user.email
+        )
+        
+        pix_code = result.get("pixCopiaECola") or result.get("qrcode") or "BR.GOV.BCB.PIX..."
+        qr_code_base64 = result.get("imagemQrCode") or result.get("qr_code_base64")
+        
+        return {
+            "payment_id": master_payment_id,
+            "pix_code": pix_code,
+            "qr_code": qr_code_base64,
+            "amount": total_amount,
+            "expires_at": numeros_db[0].reserved_until # Assuming all have similar expiry
+        }
+        
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Error Pixup HTTP: {e.response.text}")
+        try:
+            error_data = e.response.json()
+            msg = error_data.get("message") or error_data.get("error_description") or str(e)
+            if "Valor mínimo" in msg:
+                 raise HTTPException(status_code=400, detail=f"Erro Pixup: {msg}")
+        except:
+            pass
+        raise HTTPException(status_code=400, detail=f"Erro na comunicação com Pixup: {e.response.text}")
+    except Exception as e:
+        logger.error(f"Error generating checkout payment: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar pagamento: {str(e)}")
 
 @router.post("/pix")
 async def generate_pix_payment(
@@ -69,11 +166,21 @@ async def generate_pix_payment(
             "expires_at": rifa_numero.reserved_until
         }
         
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Error Pixup HTTP: {e.response.text}")
+        # Tenta extrair mensagem amigável do JSON de erro
+        try:
+            error_data = e.response.json()
+            msg = error_data.get("message") or error_data.get("error_description") or str(e)
+            if "Valor mínimo" in msg:
+                raise HTTPException(status_code=400, detail=f"Erro Pixup: {msg}")
+        except:
+            pass
+        raise HTTPException(status_code=400, detail=f"Erro na comunicação com Pixup: {e.response.text}")
     except Exception as e:
         logger.error(f"Error generating payment: {e}")
-        # Return mock if service fails (for dev/test stability)
-        # remove in production
-        raise HTTPException(status_code=500, detail="Erro ao gerar pagamento Pix")
+        # Return detail for debugging
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar pagamento Pix: {str(e)}")
 
 @router.post("/webhook/pixup")
 async def pixup_webhook(

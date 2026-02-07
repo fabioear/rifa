@@ -85,13 +85,20 @@ const RifaNumeros: React.FC = () => {
     const handleReserve = async (numero: string) => {
         setError(null);
         
+        // Check if already reserved by me (toggle/cancel logic could go here, but for now we just return)
+        const currentNum = numeros.find(n => n.numero === numero);
+        if (currentNum?.status === NumeroStatus.RESERVADO && currentNum.is_owner) {
+            return; 
+        }
+
         // Optimistic UI Update: Mark as reserved immediately
         setNumeros(prev => prev.map(n => {
             if (n.numero === numero) {
                 return { 
                     ...n, 
                     status: NumeroStatus.RESERVADO, 
-                    user_id: user?.id || undefined
+                    user_id: user?.id || undefined,
+                    is_owner: true
                 };
             }
             return n;
@@ -100,43 +107,60 @@ const RifaNumeros: React.FC = () => {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
             // 1. Reserve Number
-            const reserveRes = await axios.post(
+            await axios.post(
                 `${apiUrl}/rifas/${id}/numeros/${numero}/reservar`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-
-            // 2. Get PIX Payment Details
-            const paymentRes = await axios.post(
-                `${apiUrl}/pagamentos/pix`,
-                { payment_id: reserveRes.data.payment_id },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            setPaymentInfo({
-                numero: numero,
-                payment_id: reserveRes.data.payment_id,
-                expires_at: reserveRes.data.expires_at,
-                qr_code: paymentRes.data.qr_code,
-                qr_code_text: paymentRes.data.pix_code
-            });
             
-            // Remove full refresh to prevent race conditions with multiple clicks
-            // fetchRifaAndNumeros();
+            // REMOVED: Immediate Pix generation. Now we wait for Checkout.
             
-        } catch (err: any) {
-            // Revert ONLY this number on error
-            setNumeros(prev => prev.map(n => {
+        } catch (err) {
+            // Revert optimistic update on error
+             setNumeros(prev => prev.map(n => {
                 if (n.numero === numero) {
-                     return { 
-                         ...n, 
-                         status: NumeroStatus.LIVRE, 
-                         user_id: undefined
-                     };
+                    return { 
+                        ...n, 
+                        status: NumeroStatus.LIVRE, 
+                        user_id: undefined,
+                        is_owner: false
+                    };
                 }
                 return n;
             }));
             setError(mapApiError(err));
+        }
+    };
+
+    const handleCheckout = async () => {
+        const myReserved = numeros.filter(n => n.status === NumeroStatus.RESERVADO && n.is_owner);
+        if (myReserved.length === 0) return;
+
+        setLoading(true);
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            const payload = {
+                rifa_id: id,
+                numeros: myReserved.map(n => n.numero)
+            };
+
+            const res = await axios.post(
+                `${apiUrl}/pagamentos/checkout`, 
+                payload, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            setPaymentInfo({
+                numero: `${myReserved.length} números`,
+                payment_id: res.data.payment_id,
+                expires_at: res.data.expires_at,
+                qr_code: res.data.qr_code,
+                qr_code_text: res.data.pix_code
+            });
+        } catch (err) {
+            setError(mapApiError(err));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -228,9 +252,9 @@ const RifaNumeros: React.FC = () => {
                              borderClass = 'border-red-600';
                         } else if (isReservado) {
                             if (isMyNumber) {
-                                bgClass = 'bg-red-500 dark:bg-red-600';
+                                bgClass = 'bg-blue-500 dark:bg-blue-600';
                                 textClass = 'text-white';
-                                label += ' (Pagar)';
+                                label += ' (Selecionado)';
                             } else {
                                 bgClass = 'bg-gray-500 dark:bg-gray-600';
                                 textClass = 'text-white';
@@ -281,6 +305,29 @@ const RifaNumeros: React.FC = () => {
                     })}
             </div>
 
+            {/* Checkout Bar */}
+            {numeros.some(n => n.status === NumeroStatus.RESERVADO && n.is_owner) && rifa && (
+                <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4 border-t border-gray-200 dark:border-gray-700 z-40">
+                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div className="text-gray-900 dark:text-white font-medium">
+                            <span className="text-lg">
+                                {numeros.filter(n => n.status === NumeroStatus.RESERVADO && n.is_owner).length} números selecionados
+                            </span>
+                            <span className="mx-2 text-gray-400">|</span>
+                            <span className="text-green-600 dark:text-green-400 font-bold text-xl">
+                                R$ {(numeros.filter(n => n.status === NumeroStatus.RESERVADO && n.is_owner).length * Number(rifa.preco_numero)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                        <button
+                            onClick={handleCheckout}
+                            className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg transform transition hover:scale-105"
+                        >
+                            Finalizar Rifas
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Payment Modal Overlay */}
             {paymentInfo && (
                 <div 
@@ -297,7 +344,7 @@ const RifaNumeros: React.FC = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Pagamento - Número {paymentInfo.numero}</h3>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Pagamento - {paymentInfo.numero}</h3>
                         <p className="text-gray-500 dark:text-gray-400 mb-4">Realize o pagamento para confirmar sua reserva.</p>
                         
                         {paymentInfo.qr_code && (

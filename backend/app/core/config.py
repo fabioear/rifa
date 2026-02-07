@@ -21,7 +21,7 @@ class Settings:
     # PIXUP
     PIXUP_CLIENT_ID: str = os.getenv("PIXUP_CLIENT_ID", "")
     PIXUP_CLIENT_SECRET: str = os.getenv("PIXUP_CLIENT_SECRET", "")
-    PIXUP_API_URL: str = os.getenv("PIXUP_API_URL", "https://api.pixup.com.br")
+    PIXUP_API_URL: str = os.getenv("PIXUP_API_URL", "https://api.pixupbr.com")
     PIXUP_WEBHOOK_SECRET: str = os.getenv("PIXUP_WEBHOOK_SECRET", "")  # Para validar webhook se necessário
     
     # Meta / WhatsApp Cloud API
