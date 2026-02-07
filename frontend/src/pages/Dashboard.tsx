@@ -31,6 +31,14 @@ const Dashboard: React.FC = () => {
     // Admin Settings State
     const [fechamentoMinutos, setFechamentoMinutos] = useState(20);
 
+    // Filter State
+    const [selectedStatuses, setSelectedStatuses] = useState<RifaStatus[]>([
+        RifaStatus.ATIVA, 
+        RifaStatus.RASCUNHO, 
+        RifaStatus.ENCERRADA, 
+        RifaStatus.APURADA
+    ]);
+
     useEffect(() => {
         fetchData();
         fetchSorteios();
@@ -120,6 +128,14 @@ const Dashboard: React.FC = () => {
             data_sorteio: newDataSorteio,
             hora_encerramento: newHoraEncerramento
         });
+    };
+
+    const toggleStatus = (status: RifaStatus) => {
+        setSelectedStatuses(prev => 
+            prev.includes(status) 
+                ? prev.filter(s => s !== status) 
+                : [...prev, status]
+        );
     };
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -326,6 +342,25 @@ Participe de forma simples e rápida. Confira os detalhes e jogue pelo site ofic
                 </div>
             )}
 
+            {/* Filters */}
+            <div className="mb-6 flex flex-wrap gap-4 items-center bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filtrar por Status:</span>
+                
+                {[RifaStatus.ATIVA, RifaStatus.RASCUNHO, RifaStatus.ENCERRADA, RifaStatus.APURADA].map((status) => (
+                    <label key={status} className="inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out rounded border-gray-300 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                            checked={selectedStatuses.includes(status)}
+                            onChange={() => toggleStatus(status)}
+                        />
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300 capitalize">
+                            {status}
+                        </span>
+                    </label>
+                ))}
+            </div>
+
             {/* List */}
             <div className="bg-white dark:bg-slate-800 shadow overflow-hidden rounded-lg border border-gray-200 dark:border-slate-700">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
@@ -352,7 +387,7 @@ Participe de forma simples e rápida. Confira os detalhes e jogue pelo site ofic
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                        {rifas.map(rifa => (
+                        {rifas.filter(r => selectedStatuses.includes(r.status)).map(rifa => (
                             <tr key={rifa.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                     {rifa.titulo}

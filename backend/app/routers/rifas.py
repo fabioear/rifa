@@ -464,6 +464,67 @@ def reserve_numero(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/{rifa_id}/numeros/{numero_id}/liberar", response_model=dict)
+def release_numero(
+    rifa_id: uuid.UUID,
+    numero_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    current_tenant: Tenant = Depends(get_tenant_by_host)
+):
+    """
+    User releases their own reserved number (if not paid).
+    """
+    # 1. Determine if numero_id is UUID or string
+    try:
+        uuid_obj = uuid.UUID(numero_id)
+        is_uuid = True
+    except ValueError:
+        is_uuid = False
+        
+    query = db.query(RifaNumero).filter(RifaNumero.rifa_id == rifa_id, RifaNumero.tenant_id == current_tenant.id)
+    if is_uuid:
+        query = query.filter(RifaNumero.id == uuid_obj)
+    else:
+        query = query.filter(RifaNumero.numero == numero_id)
+        
+    num_obj = query.first()
+    
+    if not num_obj:
+        raise HTTPException(status_code=404, detail="Número não encontrado")
+        
+    # 2. Check ownership
+    if num_obj.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para liberar este número")
+        
+    # 3. Check status (Only RESERVADO can be released)
+    if num_obj.status != NumeroStatus.RESERVADO:
+        raise HTTPException(status_code=400, detail="Apenas números reservados podem ser liberados")
+        
+    # 4. Release
+    old_status = num_obj.status
+    num_obj.status = NumeroStatus.LIVRE
+    num_obj.user_id = None
+    num_obj.reserved_until = None
+    num_obj.payment_id = None
+    
+    # Audit
+    AuditLogger.log(
+        db=db,
+        action="USER_RELEASE_NUMBER",
+        entity_type="RifaNumero",
+        entity_id=str(num_obj.id),
+        actor_id=str(current_user.id),
+        actor_role=current_user.role,
+        old_value={"status": str(old_status)},
+        new_value={"status": "livre"},
+        tenant_id=current_tenant.id
+    )
+    
+    db.commit()
+    
+    return {"message": "Número liberado com sucesso", "numero": num_obj.numero}
+
 # --- Admin Manual Actions ---
 
 @router.post("/{rifa_id}/numeros/{numero}/cancelar", response_model=dict)

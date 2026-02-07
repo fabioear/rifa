@@ -82,52 +82,85 @@ const RifaNumeros: React.FC = () => {
         }
     };
 
-    const handleReserve = async (numero: string) => {
+    const handleReserve = async (numero: string, currentStatus: NumeroStatus, isMyNumber: boolean) => {
         setError(null);
         
-        // Check if already reserved by me (toggle/cancel logic could go here, but for now we just return)
-        const currentNum = numeros.find(n => n.numero === numero);
-        if (currentNum?.status === NumeroStatus.RESERVADO && currentNum.is_owner) {
-            return; 
-        }
-
-        // Optimistic UI Update: Mark as reserved immediately
-        setNumeros(prev => prev.map(n => {
-            if (n.numero === numero) {
-                return { 
-                    ...n, 
-                    status: NumeroStatus.RESERVADO, 
-                    user_id: user?.id || undefined,
-                    is_owner: true
-                };
-            }
-            return n;
-        }));
+        // Determine action based on passed arguments to ensure UI consistency
+        const isMyReservation = currentStatus === NumeroStatus.RESERVADO && isMyNumber;
+        
+        // Optimistic UI Update with forced new array reference
+        setNumeros(prev => {
+            const newNumeros = prev.map(n => {
+                if (n.numero === numero) {
+                    if (isMyReservation) {
+                        // Revert to LIVRE
+                        return { 
+                            ...n, 
+                            status: NumeroStatus.LIVRE, 
+                            user_id: undefined,
+                            is_owner: false
+                        };
+                    } else {
+                        // Reserve
+                        return { 
+                            ...n, 
+                            status: NumeroStatus.RESERVADO, 
+                            user_id: user?.id || undefined,
+                            is_owner: true
+                        };
+                    }
+                }
+                return n;
+            });
+            return [...newNumeros]; // Force new reference
+        });
 
         try {
             const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
-            // 1. Reserve Number
-            await axios.post(
-                `${apiUrl}/rifas/${id}/numeros/${numero}/reservar`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
             
-            // REMOVED: Immediate Pix generation. Now we wait for Checkout.
+            if (isMyReservation) {
+                 await axios.post(
+                    `${apiUrl}/rifas/${id}/numeros/${numero}/liberar`,
+                    {},
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            } else {
+                await axios.post(
+                    `${apiUrl}/rifas/${id}/numeros/${numero}/reservar`,
+                    {},
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            }
             
         } catch (err) {
             // Revert optimistic update on error
-             setNumeros(prev => prev.map(n => {
-                if (n.numero === numero) {
-                    return { 
-                        ...n, 
-                        status: NumeroStatus.LIVRE, 
-                        user_id: undefined,
-                        is_owner: false
-                    };
-                }
-                return n;
-            }));
+             setNumeros(prev => {
+                 // Find the original number state to revert correctly
+                 // We can't use 'currentNum' from closure as it might be stale
+                 // So we revert based on the action we just tried to perform
+                 return prev.map(n => {
+                    if (n.numero === numero) {
+                        if (isMyReservation) {
+                             // We tried to free, but failed -> Revert to RESERVED
+                             return { 
+                                 ...n, 
+                                 status: NumeroStatus.RESERVADO, 
+                                 user_id: user?.id || undefined, 
+                                 is_owner: true 
+                             };
+                        } else {
+                             // We tried to reserve, but failed -> Revert to LIVRE
+                             return { 
+                                 ...n, 
+                                 status: NumeroStatus.LIVRE, 
+                                 user_id: undefined, 
+                                 is_owner: false 
+                             };
+                        }
+                    }
+                    return n;
+                });
+            });
             setError(mapApiError(err));
         }
     };
@@ -254,7 +287,6 @@ const RifaNumeros: React.FC = () => {
                             if (isMyNumber) {
                                 bgClass = 'bg-blue-500 dark:bg-blue-600';
                                 textClass = 'text-white';
-                                label += ' (Selecionado)';
                             } else {
                                 bgClass = 'bg-gray-500 dark:bg-gray-600';
                                 textClass = 'text-white';
@@ -287,10 +319,10 @@ const RifaNumeros: React.FC = () => {
 
                         return (
                             <div 
-                                key={num.id}
+                                key={num.numero}
                                 onClick={() => {
                                     if (isLivre || (isReservado && isMyNumber)) {
-                                        handleReserve(num.numero);
+                                        handleReserve(num.numero, num.status, isMyNumber || false);
                                     }
                                 }}
                                 className={`

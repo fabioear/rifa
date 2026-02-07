@@ -5,11 +5,14 @@ from typing import Optional, Dict, Any, List
 import logging
 import httpx
 import uuid
+import qrcode
+import io
+import base64
 from datetime import datetime
 
 from app.db.session import get_db
 from app.models.rifa_numero import RifaNumero, NumeroStatus
-from app.models.rifa import Rifa
+from app.models.rifa import Rifa, RifaStatus
 from app.models.user import User
 from app.services.pixup_service import pixup_service
 from app.api.deps import get_current_active_user
@@ -35,7 +38,7 @@ async def create_checkout_payment(
     if not rifa:
         raise HTTPException(status_code=404, detail="Rifa não encontrada")
         
-    if rifa.status != "ATIVA": # Assuming 'ATIVA' string or Enum. Using string for safety if Enum not imported
+    if rifa.status != RifaStatus.ATIVA:
          raise HTTPException(status_code=400, detail="Rifa não está ativa")
 
     # 2. Validate Numbers Ownership and Status
@@ -88,9 +91,31 @@ async def create_checkout_payment(
             payer_email=current_user.email
         )
         
+        logger.info(f"Pixup Response: {result}")
+        
         pix_code = result.get("pixCopiaECola") or result.get("qrcode") or "BR.GOV.BCB.PIX..."
         qr_code_base64 = result.get("imagemQrCode") or result.get("qr_code_base64")
         
+        # If no image provided but we have the code, generate it
+        if not qr_code_base64 and pix_code:
+            try:
+                qr = qrcode.QRCode(
+                    version=1,
+                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+                    box_size=10,
+                    border=4,
+                )
+                qr.add_data(pix_code)
+                qr.make(fit=True)
+                
+                img = qr.make_image(fill_color="black", back_color="white")
+                
+                buffered = io.BytesIO()
+                img.save(buffered, format="PNG")
+                qr_code_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            except Exception as e:
+                logger.error(f"Error generating QR code locally: {e}")
+
         return {
             "payment_id": master_payment_id,
             "pix_code": pix_code,
@@ -159,6 +184,26 @@ async def generate_pix_payment(
         pix_code = result.get("pixCopiaECola") or result.get("qrcode") or "BR.GOV.BCB.PIX..."
         qr_code_base64 = result.get("imagemQrCode") or result.get("qr_code_base64")
         
+        # If no image provided but we have the code, generate it
+        if not qr_code_base64 and pix_code:
+            try:
+                qr = qrcode.QRCode(
+                    version=1,
+                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+                    box_size=10,
+                    border=4,
+                )
+                qr.add_data(pix_code)
+                qr.make(fit=True)
+                
+                img = qr.make_image(fill_color="black", back_color="white")
+                
+                buffered = io.BytesIO()
+                img.save(buffered, format="PNG")
+                qr_code_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            except Exception as e:
+                logger.error(f"Error generating QR code locally: {e}")
+
         return {
             "payment_id": request.payment_id,
             "pix_code": pix_code,

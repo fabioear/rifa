@@ -103,14 +103,19 @@ const Rifas: React.FC = () => {
             ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-5">
                     {filteredRifas.map((rifa) => (
-                        <div key={rifa.id} className={`
-                            bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden border-2
-                            ${getBorderColor(rifa.status)}
-                        `}>
-                            <div className={`
-                                px-4 py-3 border-b
-                                ${getHeaderColor(rifa.status)}
-                            `}>
+                            <div 
+                                key={rifa.id} 
+                                onClick={() => navigate(`/rifas/${rifa.id}`)}
+                                className={`
+                                    bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden border-2 cursor-pointer
+                                    transform transition-transform duration-200 hover:scale-[1.02] hover:shadow-lg
+                                    ${getBorderColor(rifa.status)}
+                                `}
+                            >
+                                <div className={`
+                                    px-4 py-3 border-b
+                                    ${getHeaderColor(rifa.status)}
+                                `}>
                                 <div className="flex justify-between">
                                     <span className={`
                                         font-bold uppercase text-xs

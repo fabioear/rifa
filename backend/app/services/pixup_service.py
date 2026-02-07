@@ -85,11 +85,12 @@ class PixupService:
                 "accept": "application/json"
             }
             
-            # Ajustando payload conforme exemplo do usuário (debtor em vez de payer)
+            # Ajustando payload para usar 'payer' conforme erro retornado pela API
             payload_gateway = {
                 "external_id": reference_id,
-                "amount": amount,
-                "debtor": {
+                "value": amount, # Algumas APIs usam value ou amount
+                "amount": amount, # Mantendo amount por garantia
+                "payer": {
                     "name": payer_name,
                     "document": ''.join(filter(str.isdigit, payer_cpf)),
                     "email": payer_email or ""
