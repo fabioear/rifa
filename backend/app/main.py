@@ -37,6 +37,10 @@ app.mount("/imagem", StaticFiles(directory=static_dir), name="imagem")
 # --- Startup Event ---
 @app.on_event("startup")
 def on_startup():
+    # Log current server time for verification
+    from datetime import datetime
+    logger.info(f"Server Startup Time: {datetime.now()}")
+    
     logger.info("Checking for initial data...")
     db = SessionLocal()
     try:

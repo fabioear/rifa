@@ -14,6 +14,9 @@ RUN npm run build
 # Etapa 2: Servir com Nginx leve
 FROM nginx:alpine
 
+# Install tzdata for correct timezone in logs
+RUN apk add --no-cache tzdata
+
 # Copiar os arquivos do build para o diretório do Nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
 
