@@ -227,6 +227,70 @@ async def generate_pix_payment(
         # Return detail for debugging
         raise HTTPException(status_code=500, detail=f"Erro ao gerar pagamento Pix: {str(e)}")
 
+@router.post("/check/{payment_id}")
+async def check_payment_status_manual(
+    payment_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Endpoint para verificação manual de pagamento pelo usuário.
+    Força uma consulta na Pixup para ver se o pagamento já consta.
+    """
+    # Find reservation
+    rifa_numeros = db.query(RifaNumero).filter(RifaNumero.payment_id == payment_id).all()
+    
+    if not rifa_numeros:
+        raise HTTPException(status_code=404, detail="Pagamento não encontrado")
+        
+    # Check if already paid
+    if all(rn.status == NumeroStatus.PAGO for rn in rifa_numeros):
+        return {"status": "paid", "message": "Pagamento já confirmado!"}
+        
+    # Check ownership
+    if rifa_numeros[0].user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    # Call Pixup to check
+    is_paid = await pixup_service.check_payment_status(payment_id)
+    
+    if is_paid:
+        # Update status
+        for rn in rifa_numeros:
+            if rn.status != NumeroStatus.PAGO:
+                rn.status = NumeroStatus.PAGO
+                rn.updated_at = datetime.now()
+                
+                # Log to PaymentLog
+                try:
+                    from app.models.audit_finance import PaymentLog, PaymentLogMethod, PaymentLogStatus
+                    
+                    # Avoid duplicate log check
+                    existing_log = db.query(PaymentLog).filter(
+                        PaymentLog.payment_id == payment_id,
+                        PaymentLog.numero_id == rn.id
+                    ).first()
+                    
+                    if not existing_log:
+                        pay_log = PaymentLog(
+                            rifa_id=rn.rifa_id,
+                            numero_id=rn.id,
+                            user_id=rn.user_id,
+                            payment_id=payment_id,
+                            valor=float(rn.rifa.preco_numero),
+                            metodo=PaymentLogMethod.PIX,
+                            status=PaymentLogStatus.PAGO,
+                            tenant_id=rn.tenant_id
+                        )
+                        db.add(pay_log)
+                except Exception as log_err:
+                    logger.error(f"Failed to create PaymentLog in manual check: {log_err}")
+                    
+        db.commit()
+        return {"status": "paid", "message": "Pagamento confirmado com sucesso!"}
+    
+    return {"status": "pending", "message": "Pagamento ainda não identificado. Aguarde alguns instantes."}
+
 @router.post("/webhook/pixup")
 async def pixup_webhook(
     request: Request,
@@ -237,21 +301,40 @@ async def pixup_webhook(
         logger.info(f"Webhook Pixup received: {payload}")
         
         # Parse payload to get reference_id/payment_id
-        # This part requires knowledge of Pixup webhook format.
-        # Assuming it sends 'pix' list with 'txid' or 'infoAdicionais'
-        
-        # Example payload structure assumption (standard Pix):
-        # { "pix": [ { "txid": "...", "infoAdicionais": [ { "nome": "Referência", "valor": "PAYMENT_ID" } ] } ] }
+        # Webhook payload structure varies. Standard Pix usually has 'pix' list.
+        # We check multiple fields to ensure we catch the ID.
         
         payment_id = None
         pix_data = payload.get("pix", [])
-        if pix_data and isinstance(pix_data, list):
-            item = pix_data[0]
+        
+        # Helper to extract ID
+        def extract_id(item):
+            # 1. Try 'external_id' (Direct reference if supported)
+            if item.get("external_id"):
+                return item.get("external_id")
+            # 2. Try 'txid' (Transaction ID often used as reference)
+            if item.get("txid") and len(item.get("txid")) > 10: # Simple length check to avoid tiny IDs
+                return item.get("txid")
+            # 3. Try 'infoAdicionais' (Legacy/Standard Pix Manual)
             info_adicionais = item.get("infoAdicionais", [])
             for info in info_adicionais:
                 if info.get("nome") == "Referência":
-                    payment_id = info.get("valor")
+                    return info.get("valor")
+            return None
+
+        if pix_data and isinstance(pix_data, list):
+            for item in pix_data:
+                found_id = extract_id(item)
+                if found_id:
+                    payment_id = found_id
                     break
+        
+        # Fallback: Check root level if payload is not a list of pix
+        if not payment_id:
+             if payload.get("external_id"):
+                 payment_id = payload.get("external_id")
+             elif payload.get("txid"):
+                 payment_id = payload.get("txid")
         
         if payment_id:
             # Update status
@@ -262,7 +345,25 @@ async def pixup_webhook(
                     rn.updated_at = datetime.now()
                     # Log payment success
                     logger.info(f"Payment confirmed for reservation {rn.id} (Payment ID: {payment_id})")
-            
+                    
+                    # Log to PaymentLog
+                    try:
+                        from app.models.audit_finance import PaymentLog, PaymentLogMethod, PaymentLogStatus
+                        
+                        pay_log = PaymentLog(
+                            rifa_id=rn.rifa_id,
+                            numero_id=rn.id,
+                            user_id=rn.user_id,
+                            payment_id=payment_id,
+                            valor=float(rn.rifa.preco_numero),
+                            metodo=PaymentLogMethod.PIX,
+                            status=PaymentLogStatus.PAGO,
+                            tenant_id=rn.tenant_id
+                        )
+                        db.add(pay_log)
+                    except Exception as log_err:
+                        logger.error(f"Failed to create PaymentLog in webhook: {log_err}")
+
             db.commit()
             return {"status": "ok"}
         else:

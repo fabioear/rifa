@@ -38,6 +38,11 @@ export function mapApiError(error: any): string {
 function mapMessage(message: string): string {
     if (!message) return '';
     
+    // Prioridade para erros de integração com Pixup
+    if (message.includes("Pixup") || message.includes("Credenciais inválidas")) {
+        return message; // Retorna a mensagem real (ex: "Erro Pixup: Credenciais inválidas")
+    }
+
     // Mapeamento de mensagens comuns do backend (FastAPI/Pydantic)
     if (message.includes("Incorrect email or password")) return errorsPT.invalidCredentials;
     if (message.includes("Inactive user")) return errorsPT.inactiveUser;

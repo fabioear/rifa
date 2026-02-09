@@ -125,4 +125,63 @@ class PixupService:
             # }
             raise
 
+    async def check_payment_status(self, payment_id: str) -> bool:
+        """
+        Consulta se um pagamento específico foi realizado.
+        Como não existe endpoint direto de consulta por ID,
+        buscamos nas transações recentes (últimas 24h).
+        """
+        try:
+            token = await self._get_access_token()
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Busca últimas 24h
+            fim = datetime.utcnow()
+            inicio = fim - timedelta(hours=24)
+            fmt = "%Y-%m-%dT%H:%M:%S.000Z"
+            
+            params = {
+                "inicio": inicio.strftime(fmt),
+                "fim": fim.strftime(fmt)
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.base_url}/v2/pix",
+                    headers=headers,
+                    params=params,
+                    timeout=30.0
+                )
+                
+                if response.status_code != 200:
+                    logger.error(f"Erro ao consultar Pixup: {response.text}")
+                    return False
+                    
+                data = response.json()
+                pix_list = data.get("pix", [])
+                
+                for p in pix_list:
+                    # Verifica TXID
+                    if p.get("txid") == payment_id:
+                        return True
+                    
+                    # Verifica External ID
+                    if p.get("external_id") == payment_id:
+                        return True
+                        
+                    # Verifica InfoAdicionais (Referência)
+                    info = p.get("infoAdicionais", [])
+                    for i in info:
+                        if i.get("nome") == "Referência" and i.get("valor") == payment_id:
+                            return True
+                            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Erro ao verificar status Pixup: {str(e)}")
+            return False
+
 pixup_service = PixupService()

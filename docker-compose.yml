@@ -6,6 +6,8 @@ services:
       - "8800:8000"
     env_file:
       - .env
+    environment:
+      - TZ=America/Sao_Paulo
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

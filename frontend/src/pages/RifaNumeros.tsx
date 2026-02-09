@@ -197,6 +197,36 @@ const RifaNumeros: React.FC = () => {
         }
     };
 
+    const [checkingPayment, setCheckingPayment] = useState(false);
+
+    const checkPaymentManual = async () => {
+        if (!paymentInfo || !paymentInfo.payment_id) return;
+        
+        setCheckingPayment(true);
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+            const res = await axios.post(
+                `${apiUrl}/pagamentos/check/${paymentInfo.payment_id}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            if (res.data.status === 'paid') {
+                setSuccessMessage(res.data.message);
+                setPaymentInfo(null);
+                fetchRifaAndNumeros(); // Refresh numbers
+            } else {
+                // Keep modal open but show info
+                setError(res.data.message);
+                setTimeout(() => setError(null), 5000);
+            }
+        } catch (err) {
+            setError(mapApiError(err));
+        } finally {
+            setCheckingPayment(false);
+        }
+    };
+
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         setSuccessMessage("Copiado para a área de transferência!");
@@ -403,11 +433,24 @@ const RifaNumeros: React.FC = () => {
                             </div>
                         </div>
                         
-                        <div className="mt-5 sm:mt-6">
+                        <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row gap-3">
+                            <button
+                                type="button"
+                                onClick={checkPaymentManual}
+                                disabled={checkingPayment}
+                                className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white sm:text-sm ${
+                                    checkingPayment 
+                                    ? 'bg-green-400 cursor-not-allowed' 
+                                    : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+                                }`}
+                            >
+                                {checkingPayment ? 'Verificando...' : 'Confirma pagamento'}
+                            </button>
+                            
                             <button
                                 type="button"
                                 onClick={() => setPaymentInfo(null)}
-                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
+                                className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
                             >
                                 Fechar
                             </button>
