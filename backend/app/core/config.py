@@ -17,12 +17,6 @@ class Settings:
     TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
     TWILIO_FROM_NUMBER: str = os.getenv("TWILIO_FROM_NUMBER", "whatsapp:+14155238886")
     TWILIO_ENABLED: bool = os.getenv("TWILIO_ENABLED", "False").lower() == "true"
-
-    # PIXUP
-    PIXUP_CLIENT_ID: str = os.getenv("PIXUP_CLIENT_ID", "")
-    PIXUP_CLIENT_SECRET: str = os.getenv("PIXUP_CLIENT_SECRET", "")
-    PIXUP_API_URL: str = os.getenv("PIXUP_API_URL", "https://api.pixupbr.com")
-    PIXUP_WEBHOOK_SECRET: str = os.getenv("PIXUP_WEBHOOK_SECRET", "")  # Para validar webhook se necessário
     
     # Meta / WhatsApp Cloud API
     META_API_URL: str = os.getenv("META_API_URL", "https://graph.facebook.com/v21.0")
@@ -37,5 +31,10 @@ class Settings:
     
     META_TEMPLATE_NEW_RIFA: str = os.getenv("META_TEMPLATE_NEW_RIFA", "nova_rifa_disponivel")
     META_TEMPLATE_WINNER: str = os.getenv("META_TEMPLATE_WINNER", "rifa_resultado_ganhador")
+
+    # Asaas Payment Integration
+    ASAAS_API_URL: str = os.getenv("ASAAS_API_URL", "https://www.asaas.com/api/v3")
+    ASAAS_API_KEY: str = os.getenv("ASAAS_API_KEY", "$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmRkM2U4OTE0LTlmOWItNDQwZC04MzQ4LWUzZjY4NGY5MDJmNDo6JGFhY2hfYTZhMjgzNTYtOGU5OC00MmZmLWJjOGEtZWE0ZWQ2MTI5MTQx")
+    ASAAS_WEBHOOK_SECRET: str = os.getenv("ASAAS_WEBHOOK_SECRET", "") # Configure no painel do Asaas e adicione no .env se necessário
 
 settings = Settings()

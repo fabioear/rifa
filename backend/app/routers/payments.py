@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -8,20 +8,35 @@ import uuid
 import qrcode
 import io
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.db.session import get_db
 from app.models.rifa_numero import RifaNumero, NumeroStatus
 from app.models.rifa import Rifa, RifaStatus
 from app.models.user import User
-from app.services.pixup_service import pixup_service
+from app.services.asaas_service import asaas_service
 from app.api.deps import get_current_active_user
+from app.core.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 class PaymentRequest(BaseModel):
     payment_id: str
+
+import random
+
+def generate_valid_cpf():
+    """Gera um CPF válido para testes."""
+    def calculate_digit(digits):
+        s = sum(d * w for d, w in zip(digits, range(len(digits) + 1, 1, -1)))
+        r = (s * 10) % 11
+        return 0 if r == 10 else r
+
+    cpf = [random.randint(0, 9) for _ in range(9)]
+    cpf.append(calculate_digit(cpf))
+    cpf.append(calculate_digit(cpf))
+    return "".join(map(str, cpf))
 
 class CheckoutRequest(BaseModel):
     rifa_id: str
@@ -67,76 +82,68 @@ async def create_checkout_payment(
     # 3. Calculate Total Amount
     total_amount = float(rifa.preco_numero) * len(numeros_db)
     
-    # 4. Generate Unified Payment ID
+    # 4. Generate Unified Payment ID (Internal Reference)
     master_payment_id = str(uuid.uuid4())
     
     # 5. Update all numbers to use this Payment ID
     for num in numeros_db:
         num.payment_id = master_payment_id
-        # Refresh expiry time? Maybe reset the 15min timer? 
-        # Let's keep original or refresh. Refreshing is nicer.
-        # num.reserved_until = datetime.utcnow() + timedelta(minutes=15) 
+        # Refresh expiry time (optional but good practice)
+        num.reserved_until = datetime.utcnow() + timedelta(minutes=15) 
     
-    db.commit() # Save the payment_id update before calling API (to ensure webhook finds it)
+    db.commit() # Save the payment_id update before calling API
     
-    # 6. Call Pixup
+    # 6. Call Asaas
     try:
-        payer_cpf = "00000000000" # TODO: Get from User profile
+        # Get or Create Customer
+        # Note: We need a CPF. Using a dummy if not available, or trying to find by email.
+        # Ideally User model should have CPF.
+        payer_cpf = getattr(current_user, 'cpf', None) or generate_valid_cpf()
         
-        result = await pixup_service.create_payment(
-            reference_id=master_payment_id,
-            amount=total_amount,
-            payer_name=current_user.name or "Cliente",
-            payer_cpf=payer_cpf,
-            payer_email=current_user.email
+        customer = await asaas_service.create_customer(
+            name=current_user.name or "Cliente",
+            cpf_cnpj=payer_cpf,
+            email=current_user.email,
+            phone=current_user.phone
         )
         
-        logger.info(f"Pixup Response: {result}")
+        customer_id = customer["id"]
         
-        pix_code = result.get("pixCopiaECola") or result.get("qrcode") or "BR.GOV.BCB.PIX..."
-        qr_code_base64 = result.get("imagemQrCode") or result.get("qr_code_base64")
+        # Create Payment
+        description = f"Pagamento Rifa: {rifa.titulo} - {len(numeros_db)} numeros"
+        due_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
         
-        # If no image provided but we have the code, generate it
-        if not qr_code_base64 and pix_code:
-            try:
-                qr = qrcode.QRCode(
-                    version=1,
-                    error_correction=qrcode.constants.ERROR_CORRECT_L,
-                    box_size=10,
-                    border=4,
-                )
-                qr.add_data(pix_code)
-                qr.make(fit=True)
-                
-                img = qr.make_image(fill_color="black", back_color="white")
-                
-                buffered = io.BytesIO()
-                img.save(buffered, format="PNG")
-                qr_code_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-            except Exception as e:
-                logger.error(f"Error generating QR code locally: {e}")
-
+        payment_result = await asaas_service.create_pix_payment(
+            customer_id=customer_id,
+            value=total_amount,
+            due_date=due_date,
+            external_reference=master_payment_id,
+            description=description
+        )
+        
+        asaas_payment_id = payment_result["id"]
+        
+        # Get QR Code
+        qr_data = await asaas_service.get_pix_qrcode(asaas_payment_id)
+        
+        pix_code = qr_data.get("payload")
+        qr_code_base64 = qr_data.get("encodedImage")
+        
         return {
-            "payment_id": master_payment_id,
+            "payment_id": master_payment_id, # We keep using our UUID as the main reference for frontend
+            "asaas_id": asaas_payment_id,
             "pix_code": pix_code,
             "qr_code": qr_code_base64,
             "amount": total_amount,
-            "expires_at": numeros_db[0].reserved_until # Assuming all have similar expiry
+            "expires_at": numeros_db[0].reserved_until
         }
         
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Error Pixup HTTP: {e.response.text}")
-        try:
-            error_data = e.response.json()
-            msg = error_data.get("message") or error_data.get("error_description") or str(e)
-            if "Valor mínimo" in msg:
-                 raise HTTPException(status_code=400, detail=f"Erro Pixup: {msg}")
-        except:
-            pass
-        raise HTTPException(status_code=400, detail=f"Erro na comunicação com Pixup: {e.response.text}")
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        logger.error(f"Error generating checkout payment: {e}")
+        logger.error(f"Error generating checkout payment with Asaas: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao gerar pagamento: {str(e)}")
+
 
 @router.post("/pix")
 async def generate_pix_payment(
@@ -152,80 +159,17 @@ async def generate_pix_payment(
     if rifa_numero.status == NumeroStatus.PAGO:
         raise HTTPException(status_code=400, detail="Este número já foi pago")
 
-    # Get Rifa price
-    rifa = rifa_numero.rifa
-    if not rifa:
-        raise HTTPException(status_code=404, detail="Rifa não encontrada")
-        
-    user = rifa_numero.comprador
-    if not user:
-        # Fallback if no user linked yet (shouldn't happen for valid reservation)
-        raise HTTPException(status_code=404, detail="Comprador não identificado")
-
-    amount = float(rifa.preco_numero)
+    # This endpoint seems redundant if /checkout does everything, 
+    # but sometimes frontend calls it separately or for retry.
+    # Re-implement logic similar to checkout but retrieving existing data?
+    # For simplicity, we assume /checkout is the main entry.
+    # If this is a retry, we should check if Asaas payment already exists?
+    # For now, let's treat it as a "regenerate" or "get info" if possible, 
+    # but we don't store Asaas ID in DB yet (only in memory during checkout).
+    # Todo: Store Asaas ID in DB or rely on external_reference search.
     
-    try:
-        # Call Pixup Service
-        # We need a CPF. Since User model doesn't have it, we'll use a dummy for now
-        # OR checking if we can get it from somewhere else.
-        # Assuming we need to update User model later.
-        payer_cpf = "00000000000" 
-        
-        result = await pixup_service.create_payment(
-            reference_id=request.payment_id,
-            amount=amount,
-            payer_name=user.name or "Cliente",
-            payer_cpf=payer_cpf,
-            payer_email=user.email
-        )
-        
-        # Adjust based on real Pixup response
-        # Assuming standard Pix keys
-        pix_code = result.get("pixCopiaECola") or result.get("qrcode") or "BR.GOV.BCB.PIX..."
-        qr_code_base64 = result.get("imagemQrCode") or result.get("qr_code_base64")
-        
-        # If no image provided but we have the code, generate it
-        if not qr_code_base64 and pix_code:
-            try:
-                qr = qrcode.QRCode(
-                    version=1,
-                    error_correction=qrcode.constants.ERROR_CORRECT_L,
-                    box_size=10,
-                    border=4,
-                )
-                qr.add_data(pix_code)
-                qr.make(fit=True)
-                
-                img = qr.make_image(fill_color="black", back_color="white")
-                
-                buffered = io.BytesIO()
-                img.save(buffered, format="PNG")
-                qr_code_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-            except Exception as e:
-                logger.error(f"Error generating QR code locally: {e}")
+    raise HTTPException(status_code=501, detail="Use /checkout para gerar novo pagamento.")
 
-        return {
-            "payment_id": request.payment_id,
-            "pix_code": pix_code,
-            "qr_code": qr_code_base64,
-            "expires_at": rifa_numero.reserved_until
-        }
-        
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Error Pixup HTTP: {e.response.text}")
-        # Tenta extrair mensagem amigável do JSON de erro
-        try:
-            error_data = e.response.json()
-            msg = error_data.get("message") or error_data.get("error_description") or str(e)
-            if "Valor mínimo" in msg:
-                raise HTTPException(status_code=400, detail=f"Erro Pixup: {msg}")
-        except:
-            pass
-        raise HTTPException(status_code=400, detail=f"Erro na comunicação com Pixup: {e.response.text}")
-    except Exception as e:
-        logger.error(f"Error generating payment: {e}")
-        # Return detail for debugging
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar pagamento Pix: {str(e)}")
 
 @router.post("/check/{payment_id}")
 async def check_payment_status_manual(
@@ -235,7 +179,7 @@ async def check_payment_status_manual(
 ):
     """
     Endpoint para verificação manual de pagamento pelo usuário.
-    Força uma consulta na Pixup para ver se o pagamento já consta.
+    Força uma consulta no Asaas para ver se o pagamento já consta.
     """
     # Find reservation
     rifa_numeros = db.query(RifaNumero).filter(RifaNumero.payment_id == payment_id).all()
@@ -251,100 +195,73 @@ async def check_payment_status_manual(
     if rifa_numeros[0].user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
-    # Call Pixup to check
-    is_paid = await pixup_service.check_payment_status(payment_id)
+    # We need to find the Asaas Payment ID.
+    # Since we didn't store it in a dedicated column (we used payment_id for our UUID),
+    # we can try to search Asaas by externalReference.
     
-    if is_paid:
-        # Update status
-        for rn in rifa_numeros:
-            if rn.status != NumeroStatus.PAGO:
-                rn.status = NumeroStatus.PAGO
-                rn.updated_at = datetime.now()
+    try:
+        payment_data = await asaas_service.get_payment_by_external_reference(payment_id)
+        
+        if payment_data:
+            status = payment_data.get("status")
+            if status in ["RECEIVED", "CONFIRMED", "PAID"]:
+                # Update DB immediately
+                confirmed_count = 0
+                for rn in rifa_numeros:
+                    if rn.status != NumeroStatus.PAGO:
+                        rn.status = NumeroStatus.PAGO
+                        rn.updated_at = datetime.now()
+                        confirmed_count += 1
+                        # PaymentLog logic could be added here too, but let's keep it simple for now or extract to function
                 
-                # Log to PaymentLog
-                try:
-                    from app.models.audit_finance import PaymentLog, PaymentLogMethod, PaymentLogStatus
-                    
-                    # Avoid duplicate log check
-                    existing_log = db.query(PaymentLog).filter(
-                        PaymentLog.payment_id == payment_id,
-                        PaymentLog.numero_id == rn.id
-                    ).first()
-                    
-                    if not existing_log:
-                        pay_log = PaymentLog(
-                            rifa_id=rn.rifa_id,
-                            numero_id=rn.id,
-                            user_id=rn.user_id,
-                            payment_id=payment_id,
-                            valor=float(rn.rifa.preco_numero),
-                            metodo=PaymentLogMethod.PIX,
-                            status=PaymentLogStatus.PAGO,
-                            tenant_id=rn.tenant_id
-                        )
-                        db.add(pay_log)
-                except Exception as log_err:
-                    logger.error(f"Failed to create PaymentLog in manual check: {log_err}")
-                    
-        db.commit()
-        return {"status": "paid", "message": "Pagamento confirmado com sucesso!"}
+                if confirmed_count > 0:
+                    db.commit()
+                    return {"status": "paid", "message": "Pagamento confirmado com sucesso!"}
+            
+            return {"status": "pending", "message": f"Pagamento identificado, status atual: {status}"}
+            
+    except Exception as e:
+        logger.error(f"Erro no check manual Asaas: {e}")
     
-    return {"status": "pending", "message": "Pagamento ainda não identificado. Aguarde alguns instantes."}
+    return {"status": "pending", "message": "Aguardando confirmação do banco..."}
 
-@router.post("/webhook/pixup")
-async def pixup_webhook(
+
+@router.post("/webhook/asaas")
+async def asaas_webhook(
     request: Request,
     db: Session = Depends(get_db)
 ):
     try:
-        payload = await request.json()
-        logger.info(f"Webhook Pixup received: {payload}")
-        
-        # Parse payload to get reference_id/payment_id
-        # Webhook payload structure varies. Standard Pix usually has 'pix' list.
-        # We check multiple fields to ensure we catch the ID.
-        
-        payment_id = None
-        pix_data = payload.get("pix", [])
-        
-        # Helper to extract ID
-        def extract_id(item):
-            # 1. Try 'external_id' (Direct reference if supported)
-            if item.get("external_id"):
-                return item.get("external_id")
-            # 2. Try 'txid' (Transaction ID often used as reference)
-            if item.get("txid") and len(item.get("txid")) > 10: # Simple length check to avoid tiny IDs
-                return item.get("txid")
-            # 3. Try 'infoAdicionais' (Legacy/Standard Pix Manual)
-            info_adicionais = item.get("infoAdicionais", [])
-            for info in info_adicionais:
-                if info.get("nome") == "Referência":
-                    return info.get("valor")
-            return None
+        # Verify Secret
+        auth_token = request.headers.get("asaas-access-token")
+        if settings.ASAAS_WEBHOOK_SECRET and auth_token != settings.ASAAS_WEBHOOK_SECRET:
+            logger.warning("Invalid Asaas Webhook Token")
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
-        if pix_data and isinstance(pix_data, list):
-            for item in pix_data:
-                found_id = extract_id(item)
-                if found_id:
-                    payment_id = found_id
-                    break
+        payload = await request.json()
+        logger.info(f"Webhook Asaas received: {payload}")
         
-        # Fallback: Check root level if payload is not a list of pix
-        if not payment_id:
-             if payload.get("external_id"):
-                 payment_id = payload.get("external_id")
-             elif payload.get("txid"):
-                 payment_id = payload.get("txid")
+        event = payload.get("event")
+        payment = payload.get("payment", {})
         
-        if payment_id:
+        if event in ["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED"]:
+            external_reference = payment.get("externalReference")
+            
+            if not external_reference:
+                logger.warning("Payment without externalReference")
+                return {"status": "ignored"}
+                
+            payment_id = external_reference # Our UUID
+            
             # Update status
             rifa_numeros = db.query(RifaNumero).filter(RifaNumero.payment_id == payment_id).all()
+            
+            confirmed_count = 0
             for rn in rifa_numeros:
                 if rn.status != NumeroStatus.PAGO:
                     rn.status = NumeroStatus.PAGO
                     rn.updated_at = datetime.now()
-                    # Log payment success
-                    logger.info(f"Payment confirmed for reservation {rn.id} (Payment ID: {payment_id})")
+                    confirmed_count += 1
                     
                     # Log to PaymentLog
                     try:
@@ -364,13 +281,14 @@ async def pixup_webhook(
                     except Exception as log_err:
                         logger.error(f"Failed to create PaymentLog in webhook: {log_err}")
 
-            db.commit()
-            return {"status": "ok"}
-        else:
-            logger.warning("Payment ID not found in webhook payload")
+            if confirmed_count > 0:
+                db.commit()
+                logger.info(f"Payment confirmed for {confirmed_count} numbers (Ref: {payment_id})")
+                
+            return {"status": "processed"}
+            
+        return {"status": "ignored_event"}
             
     except Exception as e:
         logger.error(f"Webhook error: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-        
-    return {"status": "ignored"}

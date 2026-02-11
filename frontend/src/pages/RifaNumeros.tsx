@@ -25,6 +25,7 @@ const RifaNumeros: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [filter, setFilter] = useState('');
     const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
+    const [checkingPayment, setCheckingPayment] = useState(false);
 
     const formatNumero = (num: string, tipo?: string) => {
         if (!tipo) return num;
@@ -197,7 +198,7 @@ const RifaNumeros: React.FC = () => {
         }
     };
 
-    const [checkingPayment, setCheckingPayment] = useState(false);
+
 
     const checkPaymentManual = async () => {
         if (!paymentInfo || !paymentInfo.payment_id) return;
@@ -438,15 +439,10 @@ const RifaNumeros: React.FC = () => {
                                 type="button"
                                 onClick={checkPaymentManual}
                                 disabled={checkingPayment}
-                                className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white sm:text-sm ${
-                                    checkingPayment 
-                                    ? 'bg-green-400 cursor-not-allowed' 
-                                    : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
-                                }`}
+                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:text-sm disabled:opacity-50"
                             >
-                                {checkingPayment ? 'Verificando...' : 'Confirma pagamento'}
+                                {checkingPayment ? 'Verificando...' : 'Já fiz o pagamento'}
                             </button>
-                            
                             <button
                                 type="button"
                                 onClick={() => setPaymentInfo(null)}
